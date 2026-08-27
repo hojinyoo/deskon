@@ -66,6 +66,40 @@ final class DeskManagerPowerGateTests: XCTestCase {
         }
     }
 
+    func testPoweredOffGivesUpAtTheTimeoutInsteadOfSpinningForever() async {
+        let mock = makeConnectableMock()
+        let manager = DeskManager(bleController: mock, configStore: makeTempConfigStore())
+        mock.emitState(.poweredOff)
+
+        do {
+            try await manager.waitUntilPoweredOn(timeout: .milliseconds(300))
+            XCTFail("a wait on Bluetooth-off must not return as if it were on")
+        } catch DeskError.bluetoothUnavailable(let state) {
+            XCTAssertEqual(state, .poweredOff, "the caller needs the state to tell recoverable from terminal")
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testWaitIsCancellable() async throws {
+        let mock = makeConnectableMock()
+        let manager = DeskManager(bleController: mock, configStore: makeTempConfigStore())
+        mock.emitState(.poweredOff)
+
+        let wait = Task { try await manager.waitUntilPoweredOn(timeout: .seconds(30)) }
+        try await Task.sleep(for: .milliseconds(150))
+        wait.cancel()
+
+        do {
+            try await wait.value
+            XCTFail("a cancelled wait must not report success")
+        } catch is CancellationError {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
     func testUnsupportedThrowsRatherThanWaitingForever() async {
         let mock = makeConnectableMock()
         let manager = DeskManager(bleController: mock, configStore: makeTempConfigStore())

@@ -3,6 +3,10 @@
 
 import Foundation
 
+// MARK: - Constants
+
+private let powerOnPollInterval: Duration = .milliseconds(100)
+
 // MARK: - DeskManager
 
 /// Actor that owns all desk state and orchestrates BLE operations.
@@ -95,9 +99,19 @@ public actor DeskManager {
     /// nothing while the manager is still starting up, so an attempt made during the gap
     /// fails for a reason that has nothing to do with the desk.
     ///
-    /// - Throws: `DeskError.bluetoothUnavailable` for states no amount of waiting fixes.
-    public func waitUntilPoweredOn() async throws {
+    /// The wait is bounded: Bluetooth switched off is a state the user can fix at any
+    /// time, and waiting on it forever leaves a caller suspended with nothing in the log
+    /// to say why. Giving up instead lets the caller log it and lets the reconnection
+    /// loop retry later.
+    ///
+    /// - Throws: `DeskError.bluetoothUnavailable` carrying the last state seen, both for
+    ///   states no wait can fix (`.unauthorized`, `.unsupported`) and on timeout. The
+    ///   payload is what separates the two.
+    ///
+    /// - Parameter timeout: Defaults to the 20 x 500ms bound this gate replaced.
+    public func waitUntilPoweredOn(timeout: Duration = .seconds(10)) async throws {
         startBLEStateObserver()
+        let deadline = ContinuousClock.now.advanced(by: timeout)
         while true {
             switch bleState {
             case .poweredOn:
@@ -105,8 +119,14 @@ public actor DeskManager {
             case .unauthorized, .unsupported:
                 throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
             default:
-                // Sub-second poll of a recorded value, so tests on a TestClock are unaffected.
-                try await Task.sleep(for: .milliseconds(100))
+                guard ContinuousClock.now < deadline else {
+                    let last = bleState ?? .unknown
+                    FileLog.debug("waitUntilPoweredOn: gave up, still \(last)", category: "core")
+                    throw DeskError.bluetoothUnavailable(last)
+                }
+                // Real sleep, not `clock`: a TestClock never advances on its own, so
+                // polling it here would hang every test that does not drive it.
+                try await Task.sleep(for: powerOnPollInterval)
             }
         }
     }
@@ -128,6 +148,26 @@ public actor DeskManager {
 
     private func recordBLEState(_ state: BLEState) {
         bleState = state
+    }
+
+    deinit {
+        bleStateTask?.cancel()
+    }
+
+    // MARK: - Config
+
+    /// Re-reads the config values mirrored into `DeskState` and republishes it.
+    ///
+    /// `deskctl` writes config straight to disk, so without this a rename or a preset
+    /// label reaches the CLI (which reloads per request) but not the menu bar, whose
+    /// name and labels are otherwise only written at handshake time.
+    public func reloadConfig() {
+        let config = (try? configStore.load()) ?? .default
+        state.deskName = config.resolvedDeskName
+        for i in 0..<state.presets.count {
+            state.presets[i].label = presetLabel(index: i + 1, config: config)
+        }
+        yieldState()
     }
 
     // MARK: - Connection lifecycle
