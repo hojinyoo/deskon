@@ -3,10 +3,6 @@
 
 import Foundation
 
-// MARK: - Constants
-
-private let powerOnPollInterval: Duration = .milliseconds(100)
-
 // MARK: - DeskManager
 
 /// Actor that owns all desk state and orchestrates BLE operations.
@@ -35,6 +31,11 @@ public actor DeskManager {
     private var bleState: BLEState?
     private var bleStateTask: Task<Void, Never>?
     private var disconnectTask: Task<Void, Never>?
+
+    /// Callers suspended in `waitUntilPoweredOn()`, keyed so a cancelled one can
+    /// be pulled out without disturbing the others.
+    private var powerOnWaiters: [Int: CheckedContinuation<Void, Error>] = [:]
+    private var nextPowerOnWaiterID = 0
 
     // MARK: - State observation
 
@@ -98,35 +99,41 @@ public actor DeskManager {
     /// nothing while the manager is still starting up, so an attempt made during the gap
     /// fails for a reason that has nothing to do with the desk.
     ///
-    /// The wait is bounded: Bluetooth switched off is a state the user can fix at any
-    /// time, and waiting on it forever leaves a caller suspended with nothing in the log
-    /// to say why. Giving up instead lets the caller log it and lets the reconnection
-    /// loop retry later.
+    /// No deadline, deliberately. A cold CoreBluetooth stack reported `.poweredOn` 13.2s
+    /// after launch and the 10s bound that preceded this left the app sitting disconnected
+    /// with the desk in range. `.unknown` and `.resetting` are what a cold stack reports on
+    /// its way up, and `.poweredOff` is a switch the user can flip at any time; none of the
+    /// three is a reason to abandon the connect.
     ///
-    /// - Throws: `DeskError.bluetoothUnavailable` carrying the last state seen, both for
-    ///   states no wait can fix (`.unauthorized`, `.unsupported`) and on timeout. The
-    ///   payload is what separates the two.
-    ///
-    /// - Parameter timeout: Defaults to the 20 x 500ms bound this gate replaced.
-    public func waitUntilPoweredOn(timeout: Duration = .seconds(10)) async throws {
+    /// - Throws: `DeskError.bluetoothUnavailable` for `.unauthorized` and `.unsupported`,
+    ///   the two states no amount of waiting fixes, or `CancellationError`.
+    public func waitUntilPoweredOn() async throws {
         startBLEStateObserver()
-        let deadline = ContinuousClock.now.advanced(by: timeout)
-        while true {
-            switch bleState {
-            case .poweredOn:
-                return
-            case .unauthorized, .unsupported:
-                throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
-            default:
-                guard ContinuousClock.now < deadline else {
-                    let last = bleState ?? .unknown
-                    FileLog.debug("waitUntilPoweredOn: gave up, still \(last)", category: "core")
-                    throw DeskError.bluetoothUnavailable(last)
+        switch bleState {
+        case .poweredOn:
+            return
+        case .unauthorized, .unsupported:
+            throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
+        default:
+            break
+        }
+
+        FileLog.debug("waitUntilPoweredOn: waiting, last state \(bleState.map(String.init(describing:)) ?? "none")", category: "core")
+
+        let id = nextPowerOnWaiterID
+        nextPowerOnWaiterID += 1
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                // Runs synchronously on the actor, so no state change can slip
+                // between this check and the store.
+                if Task.isCancelled {
+                    continuation.resume(throwing: CancellationError())
+                } else {
+                    powerOnWaiters[id] = continuation
                 }
-                // Real sleep, not `clock`: a TestClock never advances on its own, so
-                // polling it here would hang every test that does not drive it.
-                try await Task.sleep(for: powerOnPollInterval)
             }
+        } onCancel: {
+            Task { await self.cancelPowerOnWaiter(id) }
         }
     }
 
@@ -147,6 +154,30 @@ public actor DeskManager {
 
     private func recordBLEState(_ state: BLEState) {
         bleState = state
+        switch state {
+        case .poweredOn:
+            releasePowerOnWaiters(throwing: nil)
+        case .unauthorized, .unsupported:
+            releasePowerOnWaiters(throwing: DeskError.bluetoothUnavailable(state))
+        case .unknown, .resetting, .poweredOff:
+            break
+        }
+    }
+
+    private func releasePowerOnWaiters(throwing error: Error?) {
+        let waiting = powerOnWaiters.values
+        powerOnWaiters = [:]
+        for continuation in waiting {
+            if let error {
+                continuation.resume(throwing: error)
+            } else {
+                continuation.resume()
+            }
+        }
+    }
+
+    private func cancelPowerOnWaiter(_ id: Int) {
+        powerOnWaiters.removeValue(forKey: id)?.resume(throwing: CancellationError())
     }
 
     deinit {

@@ -66,19 +66,30 @@ final class DeskManagerPowerGateTests: XCTestCase {
         }
     }
 
-    func testPoweredOffGivesUpAtTheTimeoutInsteadOfSpinningForever() async {
+    /// The failure this replaces: a cold stack reported poweredOn 13.2s after
+    /// launch, past the 10s bound, and the app stayed disconnected with the desk
+    /// in range. Nothing a warming stack reports may end the wait.
+    func testColdStackTakingItsTimeStillConnects() async throws {
         let mock = makeConnectableMock()
         let manager = DeskManager(bleController: mock, configStore: makeTempConfigStore())
-        mock.emitState(.poweredOff)
 
-        do {
-            try await manager.waitUntilPoweredOn(timeout: .milliseconds(300))
-            XCTFail("a wait on Bluetooth-off must not return as if it were on")
-        } catch DeskError.bluetoothUnavailable(let state) {
-            XCTAssertEqual(state, .poweredOff, "the caller needs the state to tell recoverable from terminal")
-        } catch {
-            XCTFail("unexpected error: \(error)")
+        let autoConnect = Task {
+            try await manager.waitUntilPoweredOn()
+            try await manager.connect(peripheralId: UUID())
         }
+
+        for state in [BLEState.unknown, .resetting, .poweredOff] {
+            mock.emitState(state)
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        XCTAssertEqual(mock.connectCallCount, 0, "no attempt may be spent while the stack warms up")
+
+        mock.emitState(.poweredOn)
+        try await autoConnect.value
+
+        XCTAssertEqual(mock.connectCallCount, 1, "the connect must still happen, however late poweredOn is")
+        let state = await manager.currentState
+        XCTAssertEqual(state.connectionState, .connected)
     }
 
     func testWaitIsCancellable() async throws {
@@ -86,7 +97,7 @@ final class DeskManagerPowerGateTests: XCTestCase {
         let manager = DeskManager(bleController: mock, configStore: makeTempConfigStore())
         mock.emitState(.poweredOff)
 
-        let wait = Task { try await manager.waitUntilPoweredOn(timeout: .seconds(30)) }
+        let wait = Task { try await manager.waitUntilPoweredOn() }
         try await Task.sleep(for: .milliseconds(150))
         wait.cancel()
 

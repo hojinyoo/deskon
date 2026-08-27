@@ -112,7 +112,8 @@ extension DeskManager {
         // CoreBluetooth needs time to resume after wake.
         guard (try? await waitUntilPoweredOn()) != nil else { return }
 
-        guard !isUserInitiatedDisconnect else { return }
+        // The wait has no deadline, so re-check what it was waiting for.
+        guard state.connectionState == .disconnected, !isUserInitiatedDisconnect else { return }
 
         guard let uuidString = (try? configStore.load())?.pairedDeskUUID,
               let peripheralId = UUID(uuidString: uuidString) else { return }
