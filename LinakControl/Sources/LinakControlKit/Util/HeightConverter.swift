@@ -12,6 +12,16 @@ public enum HeightConverter {
         Double(mm) / 25.4
     }
 
+    /// Convert a value the user typed in `unit` to mm (e.g. 110.5 cm -> 1105).
+    public static func millimeters(from value: Double, unit: HeightUnit) -> Int {
+        switch unit {
+        case .cm:
+            return Int((value * 10.0).rounded())
+        case .inch:
+            return Int((value * 25.4).rounded())
+        }
+    }
+
     /// Convert height in mm to a localized display string.
     ///
     /// Fractional digits are shown only when non-zero:

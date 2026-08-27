@@ -17,6 +17,8 @@ struct DeskctlCommand: ParsableCommand {
             DownCommand.self,
             StopCommand.self,
             PresetCommand.self,
+            GotoCommand.self,
+            ToggleCommand.self,
             ConfigCommand.self,
             ServiceCommand.self,
         ]

@@ -471,3 +471,62 @@ final class IPCServerStatusBuilderTests: XCTestCase {
         XCTAssertEqual(result.presets[1].label, "Stand")
     }
 }
+
+// MARK: - Absolute Move Routing
+
+final class IPCServerGoToTests: XCTestCase {
+
+    /// Clients speak the height `status` prints, which includes the desk offset. The desk
+    /// only understands raw heights, so the server has to take the offset back off.
+    func testGoToConvertsTheDisplayHeightToARawTarget() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 660
+        let configStore = makeTempConfigStore(config: seeded)
+
+        var heightCont: AsyncStream<Data>.Continuation!
+        let heightStream = AsyncStream<Data> { heightCont = $0 }
+        let mock = MockBLEController()
+        mock.mockReadResponses[DeskUUID.outputMask] = HandshakeFixtures.validOutputMask
+        mock.mockReadResponses[DeskUUID.height] = HandshakeFixtures.heightNotification730mm
+        mock.mockNotificationStreams[DeskUUID.dpg] = makeDPGStream(
+            responses: HandshakeFixtures.happyPathDPGResponses
+        )
+        mock.mockNotificationStreams[DeskUUID.height] = heightStream
+
+        let manager = DeskManager(bleController: mock, configStore: configStore)
+        let connect = Task { try await manager.connect(peripheralId: UUID()) }
+        heightCont.yield(makeHeightPacket(mm: 730))
+        try await connect.value
+
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+        let priorCount = mock.writtenData.count
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-1", method: .goTo, params: .height(mm: 1360))
+        )
+
+        try await Task.sleep(for: .milliseconds(150))
+        let expectedRaw = DeskCommand.moveTo(tenthsOfMm: UInt16(700 * 10))
+        let targetWrites = mock.writtenData.dropFirst(priorCount).filter {
+            $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedRaw
+        }
+        XCTAssertGreaterThanOrEqual(targetWrites.count, 1, "1360mm displayed at a 660mm offset is 700mm raw")
+
+        guard case .ok(let targetMM)? = response.result else {
+            return XCTFail("goTo must answer ok, got \(String(describing: response.result))")
+        }
+        XCTAssertEqual(targetMM, 1360, "the reply echoes the height the client asked for")
+
+        heightCont.finish()
+        await manager.disconnect()
+    }
+
+    func testGoToWithoutParamsReturnsInvalidRequest() async throws {
+        let configStore = makeTempConfigStore()
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(IPCRequest(id: "goto-bad", method: .goTo, params: nil))
+
+        XCTAssertEqual(response.error?.code, IPCErrorCode.invalidRequest.rawValue)
+    }
+}

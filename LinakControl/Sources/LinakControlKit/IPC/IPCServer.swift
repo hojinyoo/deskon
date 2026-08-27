@@ -259,6 +259,8 @@ public final class IPCServer: @unchecked Sendable {
             return await handleGoPreset(request)
         case .savePreset:
             return await handleSavePreset(request)
+        case .goTo:
+            return await handleGoTo(request)
         case .reloadConfig:
             return await handleReloadConfig(request)
         }
@@ -308,6 +310,20 @@ public final class IPCServer: @unchecked Sendable {
             let state = await deskManager.currentState
             let targetMM = state.presets.first(where: { $0.index == index })?.heightMM
             return IPCResponse(id: request.id, result: .ok(targetMM: targetMM), error: nil)
+        } catch {
+            return deskErrorResponse(id: request.id, error: error)
+        }
+    }
+
+    private func handleGoTo(_ request: IPCRequest) async -> IPCResponse {
+        guard let params = request.params, case .height(let displayMM) = params else {
+            return makeError(id: request.id, code: .invalidRequest, message: "missing height")
+        }
+        // Clients speak display heights; the desk only knows raw ones.
+        let state = await deskManager.currentState
+        do {
+            try await deskManager.moveToHeight(mm: displayMM - state.deskOffsetMM)
+            return IPCResponse(id: request.id, result: .ok(targetMM: displayMM), error: nil)
         } catch {
             return deskErrorResponse(id: request.id, error: error)
         }

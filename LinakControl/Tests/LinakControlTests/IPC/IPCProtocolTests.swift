@@ -68,6 +68,26 @@ final class IPCRequestRoundTripTests: XCTestCase {
         XCTAssertEqual(mode, "manual")
     }
 
+    func testGoToRequest_roundTrip() throws {
+        let request = IPCRequest(id: "goto-001", method: .goTo, params: .height(mm: 1105))
+        let decoded = try roundTrip(request)
+        XCTAssertEqual(decoded.method, .goTo)
+        guard case .height(let mm) = decoded.params else {
+            return XCTFail("Expected .height params")
+        }
+        XCTAssertEqual(mm, 1105)
+    }
+
+    /// Height and preset both decode from an Int, so the wrong key order would silently
+    /// turn a height into a preset index.
+    func testPresetRequestStillDecodesAsAPreset() throws {
+        let decoded = try roundTrip(IPCRequest(id: "p", method: .goPreset, params: .preset(index: 2)))
+        guard case .preset(let index) = decoded.params else {
+            return XCTFail("Expected .preset params")
+        }
+        XCTAssertEqual(index, 2)
+    }
+
     func testMoveRequest_nilMode_roundTrip() throws {
         let request = IPCRequest(id: "move-002", method: .move, params: .move(direction: "down", mode: nil))
         let decoded = try roundTrip(request)

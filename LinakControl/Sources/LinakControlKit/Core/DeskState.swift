@@ -91,3 +91,10 @@ public func activePreset(height heightMM: Int, presets: [PresetPosition], isMovi
         .min(by: { $0.index < $1.index })
         .map(\.index)
 }
+
+/// Picks between the sit and stand presets (1 and 2) for a toggle: the desk moves to
+/// whichever it is further from, so repeated toggles alternate. A tie goes to standing,
+/// which is the harmless direction when the two are close together.
+public func toggleTarget(height heightMM: Int, sitMM: Int, standMM: Int) -> Int {
+    abs(heightMM - sitMM) <= abs(heightMM - standMM) ? 2 : 1
+}

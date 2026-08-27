@@ -25,8 +25,18 @@ extension DeskManager {
     func executeGoToPreset(index: Int) async throws {
         FileLog.debug("executeGoToPreset(\(index))", category: "core")
         try await ensureConnectedForAction()
-
         let targetMM = try resolvePresetHeight(index)
+        try await startMoveToHeight(targetMM, preset: index)
+    }
+
+    /// Same control loop as a preset recall, for a target the caller supplies.
+    func executeMoveToHeight(_ targetMM: Int) async throws {
+        FileLog.debug("executeMoveToHeight(\(targetMM))", category: "core")
+        try await ensureConnectedForAction()
+        try await startMoveToHeight(targetMM, preset: nil)
+    }
+
+    private func startMoveToHeight(_ targetMM: Int, preset: Int?) async throws {
         try guardHeightInRange(targetMM)
 
         await cancelPresetMoveTask()
@@ -36,7 +46,7 @@ extension DeskManager {
         try? await bleController.write(data: DeskCommand.wakeUp, to: DeskUUID.command, type: .withoutResponse)
 
         updateState {
-            $0.targetPreset = index
+            $0.targetPreset = preset
             $0.isMoving = true
             // Optimistic: a fresh recall clears any prior stall/fault flag.
             $0.needsReference = false

@@ -49,6 +49,7 @@ The point of presets is one-click switching between sitting and standing height.
    ```bash
    deskctl preset 1   # sit
    deskctl preset 2   # stand
+   deskctl toggle     # whichever of the two you are not at
    ```
 
 **Label your presets**
@@ -77,20 +78,23 @@ deskctl down --auto    # same in the other direction
 
 `--auto` and `--manual` are mutually exclusive; passing neither uses the configured default for that direction.
 
-**Script height changes**
-
-Pipe `--json` output into your tooling. For example, a shell snippet that toggles between presets 1 and 2 based on the current active slot:
+To go straight to a height instead of nudging:
 
 ```bash
-active=$(deskctl status --json | jq '.active_preset')
-if [ "$active" = "1" ]; then
-    deskctl preset 2
-else
-    deskctl preset 1
-fi
+deskctl goto 110.5   # in the unit from `deskctl config show`
 ```
 
-Use this as the body of a cron job, a hotkey via macOS Shortcuts/Raycast, or a Home Assistant automation.
+The height is the one `deskctl status` prints, so the desk offset is already accounted for. A target outside the desk's range is refused rather than driven into an end stop.
+
+**Script height changes**
+
+`deskctl toggle` is the sit/stand switch, so a hotkey or cron job is one line:
+
+```bash
+deskctl toggle
+```
+
+Use it from a cron job, a hotkey via macOS Shortcuts/Raycast, or a Home Assistant automation. Both presets 1 and 2 have to be set; toggle moves to whichever one the desk is further from.
 
 ## deskctl CLI reference
 
@@ -104,6 +108,8 @@ All commands are subcommands of `deskctl`. Every command except `config show`, `
 | `deskctl down` | Move the desk down. | `--auto`, `--manual` (mutually exclusive) |
 | `deskctl stop` | Stop any active movement immediately. | — |
 | `deskctl preset <1-4>` | Move to the named preset. | `--save` (overwrite that slot with the current height) |
+| `deskctl goto <height>` | Move to an absolute height, in the configured unit. | - |
+| `deskctl toggle` | Move to whichever of presets 1 and 2 the desk is further from. | - |
 | `deskctl config show` | Print the full config JSON. | — |
 | `deskctl config reset` | Wipe config back to defaults (clears pairing). Prompts unless forced. | `--force` |
 | `deskctl config label <1-4> [text]` | Show, set, or clear a preset label. | `--clear` |

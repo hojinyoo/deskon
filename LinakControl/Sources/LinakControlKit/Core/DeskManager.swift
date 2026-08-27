@@ -295,6 +295,14 @@ public actor DeskManager {
         try await executeGoToPreset(index: index)
     }
 
+    /// Moves the desk to an absolute raw height.
+    ///
+    /// - Parameter mm: Target in raw desk millimetres, offset already removed.
+    /// - Throws: `DeskError.notConnected` or `DeskError.targetOutOfRange`.
+    public func moveToHeight(mm: Int) async throws {
+        try await executeMoveToHeight(mm)
+    }
+
     /// Saves the current desk height to a preset slot.
     ///
     /// - Parameter index: Preset slot number (1–4).

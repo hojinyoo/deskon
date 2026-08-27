@@ -80,6 +80,13 @@ public final class IPCClient {
         return try extractTargetMM(response)
     }
 
+    /// Moves to an absolute height given in display millimetres, offset included.
+    public func goTo(heightMM: Int) throws -> Int? {
+        let request = IPCRequest(id: UUID().uuidString, method: .goTo, params: .height(mm: heightMM))
+        let response = try send(request)
+        return try extractTargetMM(response)
+    }
+
     /// Tells a running daemon to re-read config. Callers that only changed a stored
     /// value can ignore the failure: with no daemon there is no stale state to fix.
     public func reloadConfig() throws {
