@@ -1,5 +1,5 @@
 // DeskManagerReconnectionTests.swift
-// LinakControlTests — Tests for reconnection, wake-up, and heartbeat behavior.
+// LinakControlTests - Tests for reconnection and wake-up behavior.
 
 import XCTest
 import CoreBluetooth
@@ -48,12 +48,6 @@ private func configureHappyPath(_ mock: MockBLEController) {
 
 private func makeFiniteHeightStream(values: [Data]) -> AsyncStream<Data> {
     makeDPGStream(responses: values)
-}
-
-private func heartbeatWrites(in mock: MockBLEController) -> Int {
-    mock.writtenData.filter {
-        $0.characteristic == DeskUUID.targetHeartbeat && $0.data == DeskCommand.heartbeat
-    }.count
 }
 
 // MARK: - Reconnection Backoff Tests
@@ -275,98 +269,27 @@ final class DeskManagerWakeUpTests: XCTestCase {
     }
 }
 
-// MARK: - Heartbeat Tests
+// MARK: - Idle Silence
 
-final class DeskManagerHeartbeatTests: XCTestCase {
+final class DeskManagerIdleSilenceTests: XCTestCase {
 
-    func testHeartbeatWritesEverySecondAfterConnect() async throws {
+    /// Writing reference input on a timer tells the desk it is being driven remotely, and
+    /// it locks out its own panel for as long as that continues. A connected app that is
+    /// not moving the desk must therefore write nothing at all.
+    func testConnectedAndIdleWritesNothing() async throws {
         let clock = TestClock()
         let mock = MockBLEController()
         let manager = try await makeConnectedManager(mock: mock, clock: clock)
 
         mock.writtenData.removeAll()
+        clock.advance(by: .seconds(600))
+        try await Task.sleep(for: .milliseconds(100))
 
-        // Allow the heartbeat task to register its clock.sleep before we advance time.
-        try await Task.sleep(for: .milliseconds(50))
-
-        clock.advance(by: .seconds(1))
-        try await Task.sleep(for: .milliseconds(50))
-        XCTAssertEqual(heartbeatWrites(in: mock), 1, "One heartbeat per second")
-
-        clock.advance(by: .seconds(1))
-        try await Task.sleep(for: .milliseconds(50))
-        XCTAssertEqual(heartbeatWrites(in: mock), 2, "Two heartbeats after 2 seconds")
-
-        clock.advance(by: .seconds(1))
-        try await Task.sleep(for: .milliseconds(50))
-        XCTAssertEqual(heartbeatWrites(in: mock), 3, "Three heartbeats after 3 seconds")
+        XCTAssertEqual(
+            mock.writtenData.map(\.characteristic), [],
+            "an idle connection must leave the desk panel alone"
+        )
 
         await manager.disconnect()
-    }
-
-    func testHeartbeatPausesAfter10MinutesOfIdle() async throws {
-        let clock = TestClock()
-        let mock = MockBLEController()
-        let manager = try await makeConnectedManager(mock: mock, clock: clock)
-
-        // Record a user action at time T=0
-        await manager.setLastUserActionForTesting(clock.now())
-
-        // Advance 601 seconds — past the 10-minute idle threshold
-        clock.advance(by: .seconds(601))
-        try await Task.sleep(for: .milliseconds(50))
-
-        // Clear all writes that happened during those 601 seconds
-        mock.writtenData.removeAll()
-
-        // Advance 1 more second — heartbeat should NOT fire (desk is idle)
-        clock.advance(by: .seconds(1))
-        try await Task.sleep(for: .milliseconds(50))
-
-        XCTAssertEqual(heartbeatWrites(in: mock), 0,
-            "Heartbeat should be paused after 10 min of no user action")
-
-        await manager.disconnect()
-    }
-
-    func testHeartbeatResumesAfterUserAction() async throws {
-        let clock = TestClock()
-        let mock = MockBLEController()
-        let manager = try await makeConnectedManager(mock: mock, clock: clock)
-
-        // Set last user action to right now
-        await manager.setLastUserActionForTesting(clock.now())
-
-        // Advance past idle timeout
-        clock.advance(by: .seconds(601))
-        try await Task.sleep(for: .milliseconds(50))
-
-        // Simulate user action — refresh lastUserAction to current (post-advance) time
-        await manager.setLastUserActionForTesting(clock.now())
-        mock.writtenData.removeAll()
-
-        // Advance 1 second — heartbeat should fire again
-        clock.advance(by: .seconds(1))
-        try await Task.sleep(for: .milliseconds(50))
-
-        XCTAssertEqual(heartbeatWrites(in: mock), 1,
-            "Heartbeat should resume after a user action")
-
-        await manager.disconnect()
-    }
-
-    func testHeartbeatStopsAfterDisconnect() async throws {
-        let clock = TestClock()
-        let mock = MockBLEController()
-        let manager = try await makeConnectedManager(mock: mock, clock: clock)
-
-        await manager.disconnect()
-        mock.writtenData.removeAll()
-
-        clock.advance(by: .seconds(3))
-        try await Task.sleep(for: .milliseconds(50))
-
-        XCTAssertEqual(heartbeatWrites(in: mock), 0,
-            "No heartbeat writes should occur after disconnect")
     }
 }

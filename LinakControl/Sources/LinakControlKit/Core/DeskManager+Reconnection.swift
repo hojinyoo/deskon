@@ -1,8 +1,7 @@
 // DeskManager+Reconnection.swift
-// LinakControlKit — Auto-reconnection, heartbeat, and wake-up logic for DeskManager.
+// LinakControlKit - Auto-reconnection and wake-up logic for DeskManager.
 //
 // Reconnection: exponential backoff starting at 1s, doubling to max 60s.
-// Heartbeat: writes 0x01 0x80 every 1s; pauses after 10 min of no user activity.
 // Wake-up: sends FE 00 + FF 00 up to 3 times with 200ms delays.
 
 import Foundation
@@ -10,8 +9,6 @@ import CoreBluetooth
 
 // MARK: - Constants
 
-private let heartbeatInterval: Duration = .seconds(1)
-private let idleTimeoutBeforeHeartbeatPause: Duration = .seconds(600)   // 10 minutes
 private let wakeUpMaxAttempts = 3
 private let wakeUpCommandDelay: Duration = .milliseconds(200)
 private let reconnectInitialDelay: Duration = .seconds(1)
@@ -31,8 +28,6 @@ extension DeskManager {
     public func handleDisconnection() {
         guard !isUserInitiatedDisconnect else { return }
 
-        heartbeatTask?.cancel()
-        heartbeatTask = nil
         movementTask?.cancel()
         movementTask = nil
         updateState {
@@ -166,93 +161,5 @@ extension DeskManager {
     private func deskIsResponding() async -> Bool {
         let data = try? await bleController.read(DeskUUID.height)
         return data != nil
-    }
-
-    // MARK: - Transparent Wake-Up
-
-    /// Ensures the desk is awake before a command if the heartbeat has been idle too long.
-    ///
-    /// Called internally before user commands when the desk may be sleeping.
-    func ensureAwake() async throws {
-        guard isHeartbeatSuppressed() else { return }
-        try await wakeUpDesk()
-    }
-
-    private func isHeartbeatSuppressed() -> Bool {
-        guard let last = lastUserAction else { return false }
-        return clock.now() - last >= idleTimeoutBeforeHeartbeatPause
-    }
-}
-
-// MARK: - Testing Hooks
-
-extension DeskManager {
-
-    /// Sets `lastUserAction` to the given instant.
-    ///
-    /// Exposed for unit tests that need to simulate elapsed idle time
-    /// without running real tasks. Not intended for production use.
-    func setLastUserActionForTesting(_ instant: ContinuousClock.Instant) {
-        lastUserAction = instant
-    }
-}
-
-// MARK: - Heartbeat
-
-extension DeskManager {
-
-    /// Starts the 1-second heartbeat background task.
-    ///
-    /// Writes `DeskCommand.heartbeat` (01 80) to `DeskUUID.targetHeartbeat` every second.
-    /// Skips writes when the desk has been idle for more than 10 minutes, allowing the
-    /// desk to enter its natural sleep state.
-    func startHeartbeat() {
-        heartbeatTask?.cancel()
-        heartbeatTask = Task { [weak self] in
-            guard let self else { return }
-            await self.runHeartbeat()
-        }
-    }
-
-    private func runHeartbeat() async {
-        while !Task.isCancelled {
-            do {
-                try await clock.sleep(for: heartbeatInterval)
-            } catch {
-                return  // cancelled
-            }
-
-            guard state.connectionState == .connected else { return }
-
-            if shouldSendHeartbeat() {
-                try? await bleController.write(
-                    data: DeskCommand.heartbeat,
-                    to: DeskUUID.targetHeartbeat,
-                    type: .withoutResponse
-                )
-            }
-        }
-    }
-
-    private func shouldSendHeartbeat() -> Bool {
-        // Suppress heartbeat during movement — the movement loop and preset
-        // control loop already write to the same characteristic (0x0031).
-        // Interleaving heartbeats disrupts the move-to target.
-        guard !state.isMoving else { return false }
-
-        guard let last = lastUserAction else {
-            return true  // no action yet — keep desk awake by default
-        }
-        return clock.now() - last < idleTimeoutBeforeHeartbeatPause
-    }
-
-    // MARK: - User Action Tracking
-
-    /// Records the current instant as the most recent user action and wakes the desk if needed.
-    ///
-    /// Call from moveUp, moveDown, stop, goToPreset, and savePreset.
-    func recordUserAction() async throws {
-        lastUserAction = clock.now()
-        try await ensureAwake()
     }
 }

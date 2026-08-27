@@ -29,8 +29,6 @@ public actor DeskManager {
     var movementTask: Task<Void, Never>?
     var presetMoveTask: Task<Void, Never>?
     var reconnectionTask: Task<Void, Never>?
-    var heartbeatTask: Task<Void, Never>?
-    var lastUserAction: ContinuousClock.Instant?
     var isUserInitiatedDisconnect: Bool = false
 
     /// Latest BLE hardware state, nil until CoreBluetooth reports one.
@@ -205,7 +203,6 @@ public actor DeskManager {
             applyHandshakeResult(result, peripheralId: peripheralId, peripheralName: peripheralName)
             startHeightNotificationListener()
             startStatusNotificationListener()
-            startHeartbeat()
             FileLog.debug("connect: DONE -- state=connected", category: "core")
         } catch {
             FileLog.debug("connect: FAILED -- \(error)", category: "core")
@@ -216,7 +213,7 @@ public actor DeskManager {
 
     /// Disconnects from the desk and resets state.
     ///
-    /// Cancels the height notification listener, heartbeat, and any pending reconnection.
+    /// Cancels the height notification listener and any pending reconnection.
     /// Preset labels from config are preserved.
     public func disconnect() async {
         isUserInitiatedDisconnect = true
@@ -251,8 +248,6 @@ public actor DeskManager {
         heightNotificationTask = nil
         statusNotificationTask?.cancel()
         statusNotificationTask = nil
-        heartbeatTask?.cancel()
-        heartbeatTask = nil
         reconnectionTask?.cancel()
         reconnectionTask = nil
     }

@@ -1,6 +1,11 @@
 # Troubleshooting -- linak-control
 <!-- Known issues and proven fixes. Updated: 2026-07-18 -->
 
+<!-- 2026-08-27 -->
+## Desk's own control panel dead while the app is connected -> heartbeat removed -- Status: resolved
+The physical rocker did nothing and the panel LED blinked green whenever the app held a connection; kill the app and the rocker worked with the LED solid green. Cause: `startHeartbeat()` wrote `DeskCommand.heartbeat` (01 80) to `DeskUUID.targetHeartbeat` (99FA0031) once a second for the whole connection. 0x0031 is reference input, where a remote controller writes its target height, so a write every second told the desk it was being driven remotely and it locked out its local panel. Isolated on hardware with one variable: app off -> rocker works, LED solid; connected with heartbeat -> rocker dead, LED blinking; connected with `startHeartbeat()` commented out and nothing else changed -> rocker works, LED solid, and the log showed the desk moving 19mm -> 5mm over 7s across 94 height samples with zero BLE writes from the app.
+Fix: the heartbeat is gone, along with the `lastUserAction` / `ensureAwake` idle tracking that existed only to pause and resume it. Keeping the desk awake was the heartbeat's stated job, but every move and preset recall already writes `DeskCommand.wakeUp` (fe 00) first, and a probe held a connected session for over two minutes with no writes and no disconnect. `DeskManagerIdleSilenceTests` guards the invariant: connected and idle must write nothing. If periodic traffic ever turns out to be needed, it must not go to reference input -- the characteristic is the problem, not the interval.
+
 <!-- 2026-07-18 -->
 ## Cannot initialise the desk while the app runs -> stand-down on fault -- Status: resolved
 The user couldn't do the manual re-reference on the control box while linak-control was connected: the app kept reconnecting + re-running the handshake (wake-up + USER_ID write + DPG queries), interfering with the initialisation. Note: production auto-reconnect is actually NOT wired (`handleDisconnection` only called by tests; `BLEController.didDisconnectPeripheral` -> `cleanUpOnDisconnect` never notifies DeskManager) -- the interference came from launch auto-connect + re-handshakes. Fix: on the `needsReference` rising edge, `ConnectionStateObserver` calls `DeskManager.standDown()` -- like `disconnect()` (releases BLE, `isUserInitiatedDisconnect=true`) but PRESERVES `needsReference`/`faultCode` (does NOT use `resetToDisconnected`, which wipes them). So on ANY fault (decoded E16/E26/Initialise OR timing stall) the app disconnects and stands down; the desk is free to initialise. Recovery: `ensureConnectedForAction()` replaces `requireConnected()` in `startMovement`/`executeGoToPreset` -> a move auto-reconnects to `pairedDeskUUID` first; plus a manual Disconnect button (popover footer) + Reconnect (retryConnection). `connect()` success (applyHandshakeResult) clears the preserved fault. Popover DisconnectedContent shows the fault message when needsReference survives. Menu-bar warning icon works in the disconnected state too.
@@ -32,8 +37,8 @@ Writing incorrect USER_ID data back to the desk corrupted its user profile, rese
 ## DPG queries return 0x0B 0x00 -- Status: resolved
 All DPG queries failed because: (a) commands were 2 bytes instead of required 3 bytes, and (b) USER_ID session activation was missing. Fix: 3-byte read format [0x7F, cmd, 0x00] + USER_ID read+write before queries.
 
-## Heartbeat disrupts movement -- Status: resolved
-Heartbeat [0x01 0x80] writes to same characteristic (0x0031) as moveTo targets. Desk interpreted heartbeat as target position ~33m, causing erratic movement. Fix: suppress heartbeat when state.isMoving is true.
+## Heartbeat disrupts movement -- Status: superseded by the heartbeat removal below
+Heartbeat [0x01 0x80] writes to same characteristic (0x0031) as moveTo targets. Desk interpreted heartbeat as target position ~33m, causing erratic movement. Fix at the time: suppress heartbeat when state.isMoving is true.
 
 ## Height validation rejects real values -- Status: resolved
 validHeightRange was 500-1500mm (absolute), but height characteristic reports raw values (0-650mm). All real desk heights were rejected. Fix: widen to 0-7000mm for raw values.

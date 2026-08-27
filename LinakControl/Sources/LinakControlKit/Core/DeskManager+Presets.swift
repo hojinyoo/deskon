@@ -25,7 +25,6 @@ extension DeskManager {
     func executeGoToPreset(index: Int) async throws {
         FileLog.debug("executeGoToPreset(\(index))", category: "core")
         try await ensureConnectedForAction()
-        try await recordUserAction()
 
         let targetMM = try resolvePresetHeight(index)
         try guardHeightInRange(targetMM)

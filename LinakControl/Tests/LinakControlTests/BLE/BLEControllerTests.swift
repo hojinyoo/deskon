@@ -165,9 +165,9 @@ final class MockBLEControllerWriteTests: XCTestCase {
         XCTAssertEqual(mock.writtenData[2].data, DeskCommand.stop)
     }
 
-    func testWriteToTargetHeartbeatCapturesCorrectUUID() async throws {
+    func testWriteToTargetCharacteristicCapturesCorrectUUID() async throws {
         let mock = MockBLEController()
-        let data = DeskCommand.heartbeat
+        let data = DeskCommand.moveTo(tenthsOfMm: 6500)
 
         try await mock.write(data: data, to: DeskUUID.targetHeartbeat, type: .withoutResponse)
 

@@ -31,4 +31,4 @@ All DPG responses: [status_byte, length_byte, ...payload]
 - Auto/Preset: preflight [0x00 0x00] to command, then moveTo target to 0x0031 every 100ms
 - Stop: [0xFF 0x00] to command (send twice)
 - Wake: [0xFE 0x00] to command before movement if idle
-- Heartbeat: [0x01 0x80] to 0x0031 every 1s -- SUPPRESSED during movement (same characteristic)
+- Idle: no writes at all. A keep-alive on 0x0031 locks out the desk's own panel (see troubleshooting)

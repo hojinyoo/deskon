@@ -56,7 +56,6 @@ extension DeskManager {
     func startMovement(_ direction: MoveDirection, mode: RunMode) async throws {
         FileLog.debug("startMovement(\(direction), mode: \(mode))", category: "core")
         try await ensureConnectedForAction()
-        try await recordUserAction()
         await cancelMovementTask()
 
         // Wake the desk before sending movement commands.
