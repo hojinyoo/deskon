@@ -29,6 +29,10 @@ public actor DeskManager {
     var lastUserAction: ContinuousClock.Instant?
     var isUserInitiatedDisconnect: Bool = false
 
+    /// Latest BLE hardware state, nil until CoreBluetooth reports one.
+    private var bleState: BLEState?
+    private var bleStateTask: Task<Void, Never>?
+
     // MARK: - State observation
 
     /// One continuation per active subscriber. A single `AsyncStream` delivers
@@ -81,6 +85,49 @@ public actor DeskManager {
     /// Returns the current desk state snapshot.
     public var currentState: DeskState {
         state
+    }
+
+    // MARK: - BLE power state
+
+    /// Suspends until CoreBluetooth reports the central manager is powered on.
+    ///
+    /// Connecting before then is wasted: `retrievePeripherals(withIdentifiers:)` returns
+    /// nothing while the manager is still starting up, so an attempt made during the gap
+    /// fails for a reason that has nothing to do with the desk.
+    ///
+    /// - Throws: `DeskError.bluetoothUnavailable` for states no amount of waiting fixes.
+    public func waitUntilPoweredOn() async throws {
+        startBLEStateObserver()
+        while true {
+            switch bleState {
+            case .poweredOn:
+                return
+            case .unauthorized, .unsupported:
+                throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
+            default:
+                // Sub-second poll of a recorded value, so tests on a TestClock are unaffected.
+                try await Task.sleep(for: .milliseconds(100))
+            }
+        }
+    }
+
+    /// Records BLE hardware state from the controller's stream.
+    ///
+    /// Exactly one consumer: an `AsyncStream` hands each element to a single iterator, so
+    /// a second reader would steal updates from this one.
+    private func startBLEStateObserver() {
+        guard bleStateTask == nil else { return }
+        let stream = bleController.stateStream
+        bleStateTask = Task { [weak self] in
+            for await state in stream {
+                guard let self else { return }
+                await self.recordBLEState(state)
+            }
+        }
+    }
+
+    private func recordBLEState(_ state: BLEState) {
+        bleState = state
     }
 
     // MARK: - Connection lifecycle

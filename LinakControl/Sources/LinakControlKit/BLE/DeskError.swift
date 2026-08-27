@@ -28,4 +28,7 @@ public enum DeskError: Error, Sendable {
 
     /// The desk did not respond to wake-up commands after the maximum number of retries.
     case wakeUpFailed
+
+    /// Bluetooth cannot be used at all: unsupported hardware, or the app is not authorised.
+    case bluetoothUnavailable(BLEState)
 }
