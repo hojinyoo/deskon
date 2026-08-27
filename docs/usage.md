@@ -84,7 +84,7 @@ To go straight to a height instead of nudging:
 deskctl goto 110.5   # in the unit from `deskctl config show`
 ```
 
-The height is the one `deskctl status` prints, so the desk offset is already accounted for. A target outside the desk's range is refused rather than driven into an end stop.
+The height is the one `deskctl status` prints, so the desk offset is already accounted for. A target outside `desk_offset_mm` to `desk_offset_mm + max_stroke_mm` is refused before anything reaches the desk, and the error names the range. The desk reports its lowest position but not its travel, so `max_stroke_mm` is a setting; see [Configuration](configuration.md).
 
 **Script height changes**
 

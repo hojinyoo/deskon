@@ -2,6 +2,7 @@
 // deskctl — Root command definition with all subcommands registered.
 
 import ArgumentParser
+import Foundation
 import LinakControlKit
 
 @main
@@ -23,4 +24,19 @@ struct DeskctlCommand: ParsableCommand {
             ServiceCommand.self,
         ]
     )
+
+    static func main() {
+        rejectNegativeHeight()
+        Self.main(nil)
+    }
+
+    /// argument-parser reads any leading-dash token as an option, so a typed negative
+    /// height dies as "Unknown option '-5'" before GotoCommand ever sees it.
+    private static func rejectNegativeHeight() {
+        let args = CommandLine.arguments.dropFirst()
+        guard args.first == "goto", args.count == 2,
+              let last = args.last, let value = Double(last), value < 0 else { return }
+        CLIFormatter.printError("Height must be above 0, and \(last) is not.")
+        Foundation.exit(ExitCode.validationFailure.rawValue)
+    }
 }

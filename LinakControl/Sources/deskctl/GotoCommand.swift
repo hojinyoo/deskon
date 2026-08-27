@@ -13,6 +13,12 @@ struct GotoCommand: ParsableCommand {
         The height is read in the unit from `deskctl config show`, and is the
         height `deskctl status` reports, not the desk's raw value.
 
+        A target the desk cannot reach is refused before anything is sent. The
+        desk reports its lowest position but not its travel, so the top of the
+        range is `desk_offset_mm + max_stroke_mm`. max_stroke_mm defaults to
+        650, the raw height the up button already drives to; set it to your
+        desk's own travel to tighten the check.
+
         Example:
           deskctl goto 110.5
         """

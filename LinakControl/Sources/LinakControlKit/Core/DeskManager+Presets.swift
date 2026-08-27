@@ -30,8 +30,16 @@ extension DeskManager {
     }
 
     /// Same control loop as a preset recall, for a target the caller supplies.
+    ///
+    /// Unlike a preset, this target did not come from the desk, so it is checked against
+    /// the desk's travel before anything reaches BLE. `DeskLimits.safeCommandRange` is not
+    /// that check: at `UInt16(mm * 10)` it is an encoding bound, and 6500mm is 6.5 metres.
     func executeMoveToHeight(_ targetMM: Int) async throws {
         FileLog.debug("executeMoveToHeight(\(targetMM))", category: "core")
+        let stroke = ((try? configStore.load()) ?? .default).maxStrokeMM
+        guard (0...stroke).contains(targetMM) else {
+            throw DeskError.targetOutOfRange(targetMM)
+        }
         try await ensureConnectedForAction()
         try await startMoveToHeight(targetMM, preset: nil)
     }

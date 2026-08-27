@@ -501,20 +501,20 @@ final class IPCServerGoToTests: XCTestCase {
         let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
         let priorCount = mock.writtenData.count
         let response = await server.handleRequest(
-            IPCRequest(id: "goto-1", method: .goTo, params: .height(mm: 1360))
+            IPCRequest(id: "goto-1", method: .goTo, params: .height(mm: 1060))
         )
 
         try await Task.sleep(for: .milliseconds(150))
-        let expectedRaw = DeskCommand.moveTo(tenthsOfMm: UInt16(700 * 10))
+        let expectedRaw = DeskCommand.moveTo(tenthsOfMm: UInt16(400 * 10))
         let targetWrites = mock.writtenData.dropFirst(priorCount).filter {
             $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedRaw
         }
-        XCTAssertGreaterThanOrEqual(targetWrites.count, 1, "1360mm displayed at a 660mm offset is 700mm raw")
+        XCTAssertGreaterThanOrEqual(targetWrites.count, 1, "1060mm displayed at a 660mm offset is 400mm raw")
 
         guard case .ok(let targetMM)? = response.result else {
             return XCTFail("goTo must answer ok, got \(String(describing: response.result))")
         }
-        XCTAssertEqual(targetMM, 1360, "the reply echoes the height the client asked for")
+        XCTAssertEqual(targetMM, 1060, "the reply echoes the height the client asked for")
 
         heightCont.finish()
         await manager.disconnect()
@@ -560,6 +560,40 @@ final class IPCServerGoToTests: XCTestCase {
 
         heightCont.finish()
         await manager.disconnect()
+    }
+
+    /// The rejection has to name the range, or the only way to find it is the source.
+    func testGoToOutOfRangeNamesTheAcceptedRangeInTheConfiguredUnit() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 680
+        let configStore = makeTempConfigStore(config: seeded)
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-far", method: .goTo, params: .height(mm: 3000))
+        )
+
+        let message = try XCTUnwrap(response.error?.message)
+        XCTAssertTrue(message.contains("300 cm"), "name the target that was refused: \(message)")
+        XCTAssertTrue(message.contains("68 cm"), "name the bottom of the range: \(message)")
+        XCTAssertTrue(message.contains("133 cm"), "name the top of the range: \(message)")
+        XCTAssertTrue(message.contains("max_stroke_mm"), "name the setting that moves it: \(message)")
+    }
+
+    /// Out of range is decided before the connection is, so an obviously bad target reads
+    /// as a bad target rather than as a disconnected desk.
+    func testGoToOutOfRangeIsRefusedEvenWhenDisconnected() async throws {
+        let configStore = makeTempConfigStore()
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-far", method: .goTo, params: .height(mm: 3000))
+        )
+
+        XCTAssertNotEqual(response.error?.code, IPCErrorCode.notConnected.rawValue)
+        XCTAssertTrue(try XCTUnwrap(response.error?.message).contains("outside this desk's range"))
     }
 
     func testGoToWithoutParamsReturnsInvalidRequest() async throws {

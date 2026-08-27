@@ -32,6 +32,13 @@ public struct AppConfig: Codable, Equatable {
         userDeskName = (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 
+    /// Travel above the desk's lowest position, in raw mm, used to reject a `goto` target
+    /// the desk cannot reach. The desk does not report its stroke: GET_CAPABILITIES answers
+    /// a flags byte and GET_BASE_OFFSET answers the base height, so this is a setting.
+    /// The default is the raw height auto-up already drives to, so `goto` cannot reach past
+    /// what the up button reaches. Lower it to your desk's real stroke to tighten the check.
+    public var maxStrokeMM: Int = 650
+
     // MARK: Display
 
     /// Height display unit. Defaults to .cm.
@@ -71,6 +78,7 @@ public struct AppConfig: Codable, Equatable {
         pairedDeskUUID: String? = nil,
         pairedDeskName: String? = nil,
         userDeskName: String? = nil,
+        maxStrokeMM: Int = 650,
         unit: HeightUnit = .cm,
         deskOffsetMM: Int = 0,
         autoRunUp: RunMode = .manual,
@@ -83,6 +91,7 @@ public struct AppConfig: Codable, Equatable {
         self.pairedDeskUUID = pairedDeskUUID
         self.pairedDeskName = pairedDeskName
         self.userDeskName = userDeskName
+        self.maxStrokeMM = maxStrokeMM
         self.unit = unit
         self.deskOffsetMM = deskOffsetMM
         self.autoRunUp = autoRunUp
@@ -99,6 +108,7 @@ public struct AppConfig: Codable, Equatable {
         case pairedDeskUUID   = "paired_desk_uuid"
         case pairedDeskName   = "paired_desk_name"
         case userDeskName     = "user_desk_name"
+        case maxStrokeMM      = "max_stroke_mm"
         case unit
         case deskOffsetMM     = "desk_offset_mm"
         case autoRunUp        = "auto_run_up"
@@ -126,6 +136,7 @@ public struct AppConfig: Codable, Equatable {
         pairedDeskUUID = try c.decodeIfPresent(String.self, forKey: .pairedDeskUUID)
         pairedDeskName = try c.decodeIfPresent(String.self, forKey: .pairedDeskName)
         userDeskName   = try c.decodeIfPresent(String.self, forKey: .userDeskName)
+        maxStrokeMM    = try c.decodeIfPresent(Int.self, forKey: .maxStrokeMM) ?? 650
         unit           = try c.decodeIfPresent(HeightUnit.self, forKey: .unit) ?? .cm
         deskOffsetMM   = try c.decodeIfPresent(Int.self, forKey: .deskOffsetMM) ?? 0
         autoRunUp      = try c.decodeIfPresent(RunMode.self, forKey: .autoRunUp) ?? .manual
@@ -155,6 +166,7 @@ public struct AppConfig: Codable, Equatable {
         try c.encodeIfPresent(pairedDeskUUID, forKey: .pairedDeskUUID)
         try c.encodeIfPresent(pairedDeskName, forKey: .pairedDeskName)
         try c.encodeIfPresent(userDeskName, forKey: .userDeskName)
+        try c.encode(maxStrokeMM, forKey: .maxStrokeMM)
         try c.encode(unit, forKey: .unit)
         try c.encode(deskOffsetMM, forKey: .deskOffsetMM)
         try c.encode(autoRunUp, forKey: .autoRunUp)
