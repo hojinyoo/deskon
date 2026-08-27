@@ -27,6 +27,9 @@ public final class BLEController: NSObject, BLEControllerProtocol, @unchecked Se
     // State stream
     private var stateContinuation: AsyncStream<BLEState>.Continuation?
 
+    // Disconnection stream
+    private var disconnectContinuation: AsyncStream<Void>.Continuation?
+
     // Write continuations keyed by characteristic UUID
     private var writeContinuations: [CBUUID: CheckedContinuation<Void, Error>] = [:]
 
@@ -46,6 +49,10 @@ public final class BLEController: NSObject, BLEControllerProtocol, @unchecked Se
 
     public let stateStream: AsyncStream<BLEState>
 
+    // MARK: - BLEControllerProtocol — disconnections
+
+    public let disconnections: AsyncStream<Void>
+
     // MARK: - Init
 
     override public init() {
@@ -53,8 +60,13 @@ public final class BLEController: NSObject, BLEControllerProtocol, @unchecked Se
         stateStream = AsyncStream { continuation in
             stateCont = continuation
         }
+        var disconnectCont: AsyncStream<Void>.Continuation!
+        disconnections = AsyncStream { continuation in
+            disconnectCont = continuation
+        }
         super.init()
         stateContinuation = stateCont
+        disconnectContinuation = disconnectCont
         centralManager = CBCentralManager(delegate: self, queue: bleQueue)
     }
 
@@ -352,6 +364,9 @@ extension BLEController: CBCentralManagerDelegate {
     ) {
         FileLog.debug("didDisconnect: '\(peripheral.name ?? "unknown")' error=\(error?.localizedDescription ?? "none")", category: "ble")
         cleanUpOnDisconnect()
+        // Tell DeskManager. Without this the drop stops here: the app keeps
+        // reporting connected, never reconnects, and never says a word.
+        disconnectContinuation?.yield()
     }
 }
 

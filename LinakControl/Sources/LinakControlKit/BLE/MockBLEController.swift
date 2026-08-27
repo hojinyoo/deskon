@@ -72,6 +72,10 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
     /// Artificial delay injected into ``connect(peripheralId:)`` before resolving.
     public var connectDelay: Duration = .zero
 
+    /// When `true`, ``write(data:to:type:)`` throws ``BLEError/notConnected`` —
+    /// what a real write does once the link is gone.
+    public var shouldFailWrite: Bool = false
+
     // MARK: - BLEControllerProtocol — stateStream
 
     public let stateStream: AsyncStream<BLEState>
@@ -83,6 +87,17 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
         stateContinuation.yield(state)
     }
 
+    // MARK: - BLEControllerProtocol — disconnections
+
+    public let disconnections: AsyncStream<Void>
+
+    private let disconnectContinuation: AsyncStream<Void>.Continuation
+
+    /// Simulate the peripheral link dropping.
+    public func emitDisconnection() {
+        disconnectContinuation.yield()
+    }
+
     // MARK: - Init
 
     public init() {
@@ -91,6 +106,11 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
             cont = continuation
         }
         stateContinuation = cont
+        var disconnectCont: AsyncStream<Void>.Continuation!
+        disconnections = AsyncStream { continuation in
+            disconnectCont = continuation
+        }
+        disconnectContinuation = disconnectCont
     }
 
     // MARK: - BLEControllerProtocol — scan
@@ -136,6 +156,9 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
         to characteristic: CBUUID,
         type: CBCharacteristicWriteType
     ) async throws {
+        if shouldFailWrite {
+            throw BLEError.notConnected
+        }
         lock.withLock {
             _writtenData.append((data: data, characteristic: characteristic))
         }

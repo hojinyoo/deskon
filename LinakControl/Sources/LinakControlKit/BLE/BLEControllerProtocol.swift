@@ -54,6 +54,12 @@ public protocol BLEControllerProtocol: AnyObject, Sendable {
     /// Emits BLE hardware state changes.
     var stateStream: AsyncStream<BLEState> { get }
 
+    /// Emits once each time the peripheral link drops.
+    ///
+    /// One consumer only: an `AsyncStream` hands each element to a single
+    /// iterator, so a second reader would steal drops from the first.
+    var disconnections: AsyncStream<Void> { get }
+
     /// Scans for peripherals advertising ``DeskUUID/controlService``.
     ///
     /// The stream terminates when ``stopScan()`` is called.

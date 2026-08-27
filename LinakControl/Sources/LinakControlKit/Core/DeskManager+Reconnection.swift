@@ -28,12 +28,13 @@ extension DeskManager {
     public func handleDisconnection() {
         guard !isUserInitiatedDisconnect else { return }
 
-        movementTask?.cancel()
-        movementTask = nil
+        cancelMoveTasks()
         updateState {
             $0.connectionState = .disconnected
             $0.isMoving = false
             $0.moveDirection = nil
+            $0.speedMMS = 0
+            $0.targetPreset = nil
         }
         startReconnectionLoop()
     }

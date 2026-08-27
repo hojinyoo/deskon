@@ -106,7 +106,6 @@ extension DeskManager {
     private func startPresetControlLoop(targetMM: Int) {
         let rawTarget = UInt16(targetMM * 10)
         let targetData = DeskCommand.moveTo(tenthsOfMm: rawTarget)
-        let controller = bleController
         let clockRef = clock
         let deadline = clock.now().advanced(by: presetTimeout)
 
@@ -114,7 +113,6 @@ extension DeskManager {
             await self?.runPresetLoop(
                 targetMM: targetMM,
                 targetData: targetData,
-                controller: controller,
                 clock: clockRef,
                 deadline: deadline
             )
@@ -128,7 +126,6 @@ extension DeskManager {
     private func runPresetLoop(
         targetMM: Int,
         targetData: Data,
-        controller: any BLEControllerProtocol,
         clock: any ClockProtocol,
         deadline: ContinuousClock.Instant
     ) async {
@@ -138,11 +135,10 @@ extension DeskManager {
         while !Task.isCancelled {
             if hasArrived(at: targetMM) { break }
             if clock.now() >= deadline { break }
-            try? await controller.write(
-                data: targetData,
-                to: DeskUUID.targetHeartbeat,
-                type: .withoutResponse
-            )
+            guard await writeLoopCommand(targetData, to: DeskUUID.targetHeartbeat) else {
+                handleLinkLoss()
+                return
+            }
             try? await clock.sleep(for: presetLoopInterval)
 
             if tracker.isStalled(height: state.heightMM, now: clock.now()) {

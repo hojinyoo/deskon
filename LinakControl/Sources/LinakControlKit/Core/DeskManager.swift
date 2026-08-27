@@ -34,6 +34,7 @@ public actor DeskManager {
     /// Latest BLE hardware state, nil until CoreBluetooth reports one.
     private var bleState: BLEState?
     private var bleStateTask: Task<Void, Never>?
+    private var disconnectTask: Task<Void, Never>?
 
     // MARK: - State observation
 
@@ -150,6 +151,24 @@ public actor DeskManager {
 
     deinit {
         bleStateTask?.cancel()
+        disconnectTask?.cancel()
+    }
+
+    // MARK: - Link drops
+
+    /// Routes peripheral link drops to `handleDisconnection()`.
+    ///
+    /// Started at the first connect and left running: the controller's stream
+    /// lives as long as the controller, and one iterator is all it can feed.
+    private func startDisconnectObserver() {
+        guard disconnectTask == nil else { return }
+        let stream = bleController.disconnections
+        disconnectTask = Task { [weak self] in
+            for await _ in stream {
+                guard let self else { return }
+                await self.handleDisconnection()
+            }
+        }
     }
 
     // MARK: - Config
@@ -189,6 +208,7 @@ public actor DeskManager {
     public func connect(peripheralId: UUID) async throws {
         FileLog.debug("connect: starting for \(peripheralId)", category: "core")
         isUserInitiatedDisconnect = false
+        startDisconnectObserver()
         updateState { $0.connectionState = .connecting }
 
         do {
@@ -250,6 +270,20 @@ public actor DeskManager {
         statusNotificationTask = nil
         reconnectionTask?.cancel()
         reconnectionTask = nil
+        cancelMoveTasks()
+    }
+
+    /// Cancels any in-flight move loop, without awaiting it to drain.
+    ///
+    /// Every path that ends a connection goes through here. A loop left running
+    /// writes into a dead link, sees the height stop changing, and its stall
+    /// watchdog reports a desk that needs a manual reference - blaming the desk
+    /// for a connection that went away.
+    func cancelMoveTasks() {
+        movementTask?.cancel()
+        movementTask = nil
+        presetMoveTask?.cancel()
+        presetMoveTask = nil
     }
 
     // MARK: - Movement (implementation in DeskManager+Movement.swift)

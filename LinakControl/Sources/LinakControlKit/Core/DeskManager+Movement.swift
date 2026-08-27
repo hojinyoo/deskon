@@ -86,6 +86,36 @@ extension DeskManager {
         movementTask = nil
     }
 
+    /// Writes one control-loop command. Returns false when the write failed,
+    /// which is the link telling the loop it is gone: every write from here on
+    /// goes nowhere, and the height stops arriving. A loop that carried on would
+    /// hand `StallTracker` a frozen height and raise `needsReference` - a desk
+    /// fault the desk never reported.
+    func writeLoopCommand(_ data: Data, to characteristic: CBUUID) async -> Bool {
+        do {
+            try await bleController.write(data: data, to: characteristic, type: .withoutResponse)
+            return true
+        } catch {
+            FileLog.debug("move write failed (\(error)): link gone, stopping the loop", category: "movement")
+            return false
+        }
+    }
+
+    /// Clears movement state after the link dropped mid-move.
+    ///
+    /// Deliberately leaves `needsReference` alone: nothing is known to be wrong
+    /// with the desk. Raising it would post a fault notification and stand the
+    /// app down, which sets `isUserInitiatedDisconnect` and so cancels the very
+    /// reconnection this needs. `handleDisconnection()` owns the connection state.
+    func handleLinkLoss() {
+        updateState {
+            $0.isMoving = false
+            $0.moveDirection = nil
+            $0.speedMMS = 0
+            $0.targetPreset = nil
+        }
+    }
+
     /// Writes the stop command twice then resets movement state.
     func writeStopCommand() async throws {
         try await bleController.write(
@@ -139,11 +169,10 @@ extension DeskManager {
         var tracker = StallTracker(height: state.heightMM, now: clock.now())
 
         while !Task.isCancelled {
-            try? await bleController.write(
-                data: command,
-                to: characteristic,
-                type: .withoutResponse
-            )
+            guard await writeLoopCommand(command, to: characteristic) else {
+                handleLinkLoss()
+                return
+            }
             try? await clock.sleep(for: movementInterval)
 
             if tracker.isStalled(height: state.heightMM, now: clock.now()) {
