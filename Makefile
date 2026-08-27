@@ -17,9 +17,9 @@ INSTALL_APP   ?= /Applications
 # SMAppService (login item) which all require a bundle identifier.
 XCODEPROJ     := LinakControl.xcodeproj
 XCODE_SCHEME  := LinakControlApp
-XCODE_BUILD   := $(shell xcodebuild -project $(XCODEPROJ) -scheme $(XCODE_SCHEME) -configuration Release -showBuildSettings 2>/dev/null | awk '/BUILT_PRODUCTS_DIR/{print $$3}')
+XCODE_CONFIG  ?= Debug
 
-.PHONY: help build build-debug xcode-build xcode-build-debug generate-xcodeproj test install clean lint
+.PHONY: help build build-debug xcode-build xcode-build-debug app-path generate-xcodeproj test install clean lint
 
 help: ## Show available targets
 	@printf "Usage: make <target>\n\n"
@@ -37,6 +37,11 @@ xcode-build: generate-xcodeproj ## Build LinakControl.app bundle in release mode
 
 xcode-build-debug: generate-xcodeproj ## Build LinakControl.app bundle in debug mode via Xcode
 	xcodebuild -project $(XCODEPROJ) -scheme $(XCODE_SCHEME) -configuration Debug build
+
+app-path: ## Print the built .app path for XCODE_CONFIG (Debug or Release)
+	@dir=$$(xcodebuild -project $(XCODEPROJ) -scheme $(XCODE_SCHEME) -configuration $(XCODE_CONFIG) -showBuildSettings 2>/dev/null | sed -n 's/^ *BUILT_PRODUCTS_DIR = //p' | head -1); \
+	if [ -z "$$dir" ]; then printf "xcodebuild did not report BUILT_PRODUCTS_DIR for $(XCODE_CONFIG)\n" >&2; exit 1; fi; \
+	printf "%s/%s.app\n" "$$dir" "$(APP_BINARY)"
 
 generate-xcodeproj: ## Regenerate LinakControl.xcodeproj from project.yml (requires xcodegen)
 	@command -v xcodegen >/dev/null 2>&1 || (printf "xcodegen not found — run: brew install xcodegen\n" && exit 1)
