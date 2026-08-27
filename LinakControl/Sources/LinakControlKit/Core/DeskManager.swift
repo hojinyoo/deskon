@@ -3,6 +3,13 @@
 
 import Foundation
 
+// MARK: - Constants
+
+/// How long CoreBluetooth may say nothing before the wait says so in the log.
+/// Reporting only. The wait carries on: a cold stack has taken 13.2s to answer,
+/// and Bluetooth switched off is the user's to fix whenever they get to it.
+let powerOnReportDelay: Duration = .seconds(10)
+
 // MARK: - DeskManager
 
 /// Actor that owns all desk state and orchestrates BLE operations.
@@ -28,7 +35,7 @@ public actor DeskManager {
     var isUserInitiatedDisconnect: Bool = false
 
     /// Latest BLE hardware state, nil until CoreBluetooth reports one.
-    private var bleState: BLEState?
+    var bleState: BLEState?
     private var bleStateTask: Task<Void, Never>?
     private var disconnectTask: Task<Void, Never>?
 
@@ -118,7 +125,8 @@ public actor DeskManager {
             break
         }
 
-        FileLog.debug("waitUntilPoweredOn: waiting, last state \(bleState.map(String.init(describing:)) ?? "none")", category: "core")
+        let reporter = startSilentStackReport()
+        defer { reporter.cancel() }
 
         let id = nextPowerOnWaiterID
         nextPowerOnWaiterID += 1
@@ -174,6 +182,24 @@ public actor DeskManager {
                 continuation.resume()
             }
         }
+    }
+
+    /// Logs once if CoreBluetooth has still said nothing after `powerOnReportDelay`.
+    /// A stack that never answers leaves no other trace: the app simply waits, and
+    /// an app that waits with nothing in the log reads as an app that is broken.
+    private func startSilentStackReport() -> Task<Void, Never> {
+        let clock = self.clock
+        return Task { [weak self] in
+            guard (try? await clock.sleep(for: powerOnReportDelay)) != nil else { return }
+            await self?.reportSilentStack()
+        }
+    }
+
+    private func reportSilentStack() {
+        FileLog.debug(
+            "waitUntilPoweredOn: no state from CoreBluetooth after \(powerOnReportDelay), last state \(bleState.map(String.init(describing:)) ?? "none"); still waiting. If it never arrives, check that this build is allowed Bluetooth in System Settings > Privacy and Security.",
+            category: "core"
+        )
     }
 
     private func cancelPowerOnWaiter(_ id: Int) {
