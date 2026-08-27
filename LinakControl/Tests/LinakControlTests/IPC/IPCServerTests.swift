@@ -520,6 +520,48 @@ final class IPCServerGoToTests: XCTestCase {
         await manager.disconnect()
     }
 
+    /// `preset` prints the height this reply carries. status adds the desk offset to every
+    /// height it reports, so a preset reply without it named a different height than status
+    /// did for the same slot.
+    func testGoPresetAnswersWithTheDisplayHeight() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 660
+        let configStore = makeTempConfigStore(config: seeded)
+
+        var heightCont: AsyncStream<Data>.Continuation!
+        let heightStream = AsyncStream<Data> { heightCont = $0 }
+        let mock = MockBLEController()
+        mock.mockReadResponses[DeskUUID.outputMask] = HandshakeFixtures.validOutputMask
+        mock.mockReadResponses[DeskUUID.height] = HandshakeFixtures.heightNotification730mm
+        mock.mockNotificationStreams[DeskUUID.dpg] = makeDPGStream(
+            responses: HandshakeFixtures.happyPathDPGResponses
+        )
+        mock.mockNotificationStreams[DeskUUID.height] = heightStream
+
+        let manager = DeskManager(bleController: mock, configStore: configStore)
+        let connect = Task { try await manager.connect(peripheralId: UUID()) }
+        heightCont.yield(makeHeightPacket(mm: 730))
+        try await connect.value
+
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+        let response = await server.handleRequest(
+            IPCRequest(id: "preset-2", method: .goPreset, params: .preset(index: 2))
+        )
+
+        guard case .ok(let targetMM)? = response.result else {
+            return XCTFail("goPreset must answer ok, got \(String(describing: response.result))")
+        }
+        let status = await server.buildStatusResult(from: manager.currentState, config: try configStore.load())
+        XCTAssertEqual(
+            targetMM, status.presets.first(where: { $0.index == 2 })?.heightMM,
+            "preset and status must name the same height for the same slot"
+        )
+        XCTAssertEqual(targetMM, 1105 + 660, "raw 1105mm at a 660mm offset displays as 1765mm")
+
+        heightCont.finish()
+        await manager.disconnect()
+    }
+
     func testGoToWithoutParamsReturnsInvalidRequest() async throws {
         let configStore = makeTempConfigStore()
         let manager = makeDisconnectedManager(configStore: configStore)

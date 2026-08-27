@@ -23,3 +23,10 @@ func runIPC<T>(json: Bool = false, _ call: (IPCClient) throws -> T) throws -> T 
         throw ExitCode(code.rawValue)
     }
 }
+
+// MARK: - Unit
+
+/// The unit heights are printed in, for commands whose reply carries a bare height.
+func configuredUnit() -> HeightUnit {
+    ((try? ConfigStore().load()) ?? .default).unit
+}

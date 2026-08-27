@@ -22,7 +22,7 @@ struct GotoCommand: ParsableCommand {
     var height: Double
 
     func run() throws {
-        let unit = ((try? ConfigStore().load()) ?? .default).unit
+        let unit = configuredUnit()
         let targetMM = HeightConverter.millimeters(from: height, unit: unit)
         let reached = try runIPC { try $0.goTo(heightMM: targetMM) }
         print("Moving to \(HeightConverter.display(mm: reached ?? targetMM, unit: unit))...")

@@ -308,8 +308,8 @@ public final class IPCServer: @unchecked Sendable {
         do {
             try await deskManager.goToPreset(index: index)
             let state = await deskManager.currentState
-            let targetMM = state.presets.first(where: { $0.index == index })?.heightMM
-            return IPCResponse(id: request.id, result: .ok(targetMM: targetMM), error: nil)
+            let rawMM = state.presets.first(where: { $0.index == index })?.heightMM
+            return IPCResponse(id: request.id, result: .ok(targetMM: rawMM.map { $0 + state.deskOffsetMM }), error: nil)
         } catch {
             return deskErrorResponse(id: request.id, error: error)
         }
