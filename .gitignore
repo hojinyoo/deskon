@@ -15,3 +15,6 @@ LinakControl/.build/
 .mcp.json
 /generated-images/
 .DS_Store
+
+# OMC operational state - runtime artifacts, not project files
+.omc/
