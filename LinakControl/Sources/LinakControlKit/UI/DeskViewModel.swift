@@ -213,7 +213,9 @@ public final class DeskViewModel: ObservableObject {
     /// `isFirstRun = false` so `PopoverView` transitions to the normal UI.
     public func completeFirstRun() {
         guard let peripheralId = selectedPeripheralId else { return }
-        let name = selectedDeskName
+        // deskName was refreshed from the connected peripheral; selectedDeskName is the
+        // scan-time placeholder and must not be written back over it.
+        let name = deskName ?? selectedDeskName
         Task {
             var config = (try? configStore.load()) ?? .default
             config.pairedDeskUUID = peripheralId.uuidString

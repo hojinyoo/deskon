@@ -68,6 +68,12 @@ public protocol BLEControllerProtocol: AnyObject, Sendable {
     /// Disconnects the current peripheral and cleans up state.
     func disconnect()
 
+    /// Name reported by the currently connected peripheral, or nil when it has none.
+    ///
+    /// Only trustworthy once connected: CoreBluetooth leaves `peripheral.name` nil during
+    /// a service-filtered scan, so ``DiscoveredDesk/name`` can be a placeholder.
+    func connectedPeripheralName() async -> String?
+
     /// Writes data to a characteristic on the connected peripheral.
     func write(data: Data, to characteristic: CBUUID, type: CBCharacteristicWriteType) async throws
 

@@ -23,6 +23,9 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
     /// Streams returned by ``notifications(for:)`` keyed by characteristic UUID.
     public var mockNotificationStreams: [CBUUID: AsyncStream<Data>] = [:]
 
+    /// Name returned by ``connectedPeripheralName()``. Nil mimics a peripheral with no name.
+    public var mockConnectedName: String?
+
     // MARK: - Thread safety
 
     /// Protects mutable captured-output arrays from concurrent access.
@@ -120,6 +123,10 @@ public final class MockBLEController: BLEControllerProtocol, @unchecked Sendable
 
     public func disconnect() {
         // No-op in mock.
+    }
+
+    public func connectedPeripheralName() async -> String? {
+        mockConnectedName
     }
 
     // MARK: - BLEControllerProtocol — write

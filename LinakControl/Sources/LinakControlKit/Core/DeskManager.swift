@@ -114,7 +114,8 @@ public actor DeskManager {
             FileLog.debug("connect: starting handshake...", category: "core")
             let result = try await performHandshake(using: bleController)
             FileLog.debug("connect: handshake complete, applying result", category: "core")
-            applyHandshakeResult(result, peripheralId: peripheralId)
+            let peripheralName = await bleController.connectedPeripheralName()
+            applyHandshakeResult(result, peripheralId: peripheralId, peripheralName: peripheralName)
             startHeightNotificationListener()
             startStatusNotificationListener()
             startHeartbeat()
@@ -247,7 +248,7 @@ extension DeskManager {
     }
 
     /// Populates state from a handshake result and persists pairing info.
-    private func applyHandshakeResult(_ result: HandshakeResult, peripheralId: UUID) {
+    private func applyHandshakeResult(_ result: HandshakeResult, peripheralId: UUID, peripheralName: String?) {
         let config = (try? configStore.load()) ?? .default
 
         for i in 0..<state.presets.count {
@@ -257,7 +258,6 @@ extension DeskManager {
 
         state.heightMM = result.currentHeight
         state.connectionState = .connected
-        state.deskName = config.pairedDeskName
         // A fresh connection is a clean slate — clear any fault preserved across
         // a stand-down so the warning does not linger after reconnecting.
         state.needsReference = false
@@ -284,16 +284,35 @@ extension DeskManager {
             )
         }
 
-        persistPairingInfo(peripheralId: peripheralId, existingConfig: config, deskOffsetMM: offset)
+        let persisted = persistPairingInfo(
+            peripheralId: peripheralId,
+            learnedName: peripheralName,
+            existingConfig: config,
+            deskOffsetMM: offset
+        )
+        state.deskName = persisted.pairedDeskName
         yieldState()
     }
 
-    /// Saves paired desk UUID and offset to config.
-    private func persistPairingInfo(peripheralId: UUID, existingConfig: AppConfig, deskOffsetMM: Int) {
+    /// Saves paired desk UUID, name, and offset to config, returning the saved snapshot.
+    ///
+    /// `learnedName` overwrites any stored name rather than only filling a nil: pairing
+    /// persists the scan-time name, which is a placeholder whenever CoreBluetooth withheld
+    /// `peripheral.name` during the service-filtered scan.
+    private func persistPairingInfo(
+        peripheralId: UUID,
+        learnedName: String?,
+        existingConfig: AppConfig,
+        deskOffsetMM: Int
+    ) -> AppConfig {
         var updated = existingConfig
         updated.pairedDeskUUID = peripheralId.uuidString
         updated.deskOffsetMM = deskOffsetMM
+        if let learnedName {
+            updated.pairedDeskName = learnedName
+        }
         try? configStore.save(updated)
+        return updated
     }
 
     /// Starts the background task that listens to height characteristic notifications.

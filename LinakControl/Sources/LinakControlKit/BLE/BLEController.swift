@@ -137,6 +137,14 @@ public final class BLEController: NSObject, BLEControllerProtocol, @unchecked Se
         }
     }
 
+    public func connectedPeripheralName() async -> String? {
+        await withCheckedContinuation { continuation in
+            bleQueue.async { [weak self] in
+                continuation.resume(returning: self?.connectedPeripheral?.name)
+            }
+        }
+    }
+
     // MARK: - BLEControllerProtocol — write
 
     public func write(
