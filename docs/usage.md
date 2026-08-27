@@ -28,7 +28,7 @@ LinakControl Daemon
   Connection: connected
   Desk:       LINAK-DPG1C-1A2B
   Height:     72.4 cm
-  Presets:    1=63.0cm  2=78.5cm*  3=110.0cm  4=120.0cm
+  Presets:    1=63 cm  2=78.5 cm*  3=110 cm  4=120 cm
 ```
 
 If `deskctl` reports `Daemon: not running`, launch the app first.

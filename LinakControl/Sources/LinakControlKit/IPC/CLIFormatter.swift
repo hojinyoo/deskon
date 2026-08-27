@@ -51,7 +51,57 @@ public enum CLIFormatter {
         FileHandle.standardError.write(Data((message + "\n").utf8))
     }
 
+    // MARK: - Status Output
+
+    /// Renders the `deskctl status` table.
+    ///
+    /// `heightDisplay` and every preset height already carry their unit from
+    /// `HeightConverter.display` - nothing here appends one.
+    public static func formatStatus(_ status: StatusResult) -> String {
+        var lines = [
+            "LinakControl Daemon",
+            "  Connection: \(status.connected ? "connected" : "disconnected")",
+            "  Desk:       \(status.deskName ?? "Unknown")",
+            "  Height:     \(formatHeight(status))",
+        ]
+        let presets = formatPresets(status.presets, active: status.activePreset, unit: unit(of: status))
+        if !presets.isEmpty {
+            lines.append("  Presets:    \(presets)")
+        }
+        if status.needsReference {
+            lines.append("  Warning:    \(warningText(faultCode: status.faultCode))")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// The single line printed by `deskctl height`.
+    public static func formatHeight(_ status: StatusResult) -> String {
+        status.heightDisplay ?? "unknown"
+    }
+
     // MARK: - Private
+
+    private static func unit(of status: StatusResult) -> HeightUnit {
+        HeightUnit(rawValue: status.unit) ?? .cm
+    }
+
+    private static func formatPresets(_ presets: [PresetInfo], active: Int?, unit: HeightUnit) -> String {
+        presets.map { preset in
+            let height = preset.heightMM.map { HeightConverter.display(mm: $0, unit: unit) } ?? "unset"
+            let marker = (preset.index == active) ? "*" : ""
+            let label = preset.label.map { " \($0)" } ?? ""
+            return "\(preset.index)=\(height)\(marker)\(label)"
+        }.joined(separator: "  ")
+    }
+
+    private static func warningText(faultCode: Int?) -> String {
+        switch faultCode {
+        case 0x1d: return "desk needs re-initialisation - hold DOWN until it reaches the bottom and resets (control box shows Initialise)"
+        case 0x1e: return "desk needs a reset on the control box (E16, illegal key combination)"
+        case 0x17: return "possible hardware fault in a desk leg - check the cables (E26, channel 4 missing)"
+        default:   return "desk stopped moving - may need a manual reset on the control box"
+        }
+    }
 
     private static func mapServerCode(_ code: Int) -> CLIExitCode {
         switch code {
