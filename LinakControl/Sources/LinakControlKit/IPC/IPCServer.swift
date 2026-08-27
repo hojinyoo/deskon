@@ -259,6 +259,8 @@ public final class IPCServer: @unchecked Sendable {
             return await handleGoPreset(request)
         case .savePreset:
             return await handleSavePreset(request)
+        case .reloadConfig:
+            return await handleReloadConfig(request)
         }
     }
 
@@ -309,6 +311,11 @@ public final class IPCServer: @unchecked Sendable {
         } catch {
             return deskErrorResponse(id: request.id, error: error)
         }
+    }
+
+    private func handleReloadConfig(_ request: IPCRequest) async -> IPCResponse {
+        await deskManager.reloadConfig()
+        return IPCResponse(id: request.id, result: .ok(targetMM: nil), error: nil)
     }
 
     private func handleSavePreset(_ request: IPCRequest) async -> IPCResponse {

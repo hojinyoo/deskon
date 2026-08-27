@@ -30,11 +30,12 @@ echo "Building $APP_NAME (release)..."
 cd "$SCRIPT_DIR"
 make xcode-build 2>&1 | tail -5
 
-# Resolve the .app path from DerivedData
-APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/LinakControl-*/Build/Products/Release -name "$APP_NAME.app" -maxdepth 1 2>/dev/null | head -1)
+# Ask the build system where the product is. A DerivedData glob picks by name
+# order, so a second checkout of this repo can win and install a stale build.
+APP_PATH=$(make -s app-path XCODE_CONFIG=Release)
 
-if [ -z "$APP_PATH" ]; then
-    echo "Error: $APP_NAME.app not found in DerivedData."
+if [ ! -d "$APP_PATH" ]; then
+    echo "Error: $APP_PATH does not exist after a successful build."
     exit 1
 fi
 

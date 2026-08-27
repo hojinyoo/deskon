@@ -62,6 +62,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             if let uuid = config?.pairedDeskUUID, let peripheralId = UUID(uuidString: uuid) {
+                do {
+                    try await deskManager.waitUntilPoweredOn()
+                } catch {
+                    // Unsupported or unauthorised: waiting cannot fix either.
+                    FileLog.debug("auto-connect abandoned: \(error)", category: "app")
+                    return
+                }
+
                 // Retry connect up to 3 times with increasing delay.
                 // The desk may need time to wake from sleep after app launch.
                 for attempt in 1...3 {

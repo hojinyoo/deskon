@@ -26,8 +26,7 @@ struct HeightCommand: ParsableCommand {
     // MARK: - Formatters
 
     private func printPlain(_ status: StatusResult) {
-        let display = status.heightDisplay ?? "unknown"
-        print("\(display) \(status.unit)")
+        print(OutputFormatter.formatHeight(status))
     }
 
     private func printJSON(_ status: StatusResult) {

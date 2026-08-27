@@ -80,6 +80,14 @@ public final class IPCClient {
         return try extractTargetMM(response)
     }
 
+    /// Tells a running daemon to re-read config. Callers that only changed a stored
+    /// value can ignore the failure: with no daemon there is no stale state to fix.
+    public func reloadConfig() throws {
+        let request = IPCRequest(id: UUID().uuidString, method: .reloadConfig, params: nil)
+        let response = try send(request)
+        try assertOkResult(response)
+    }
+
     // MARK: - Connection
 
     private func openConnection() throws -> Int32 {

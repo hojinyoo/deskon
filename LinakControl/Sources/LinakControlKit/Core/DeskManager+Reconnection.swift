@@ -113,13 +113,8 @@ extension DeskManager {
     private func handleSystemWake() async {
         guard state.connectionState == .disconnected else { return }
 
-        // Poll for BLE poweredOn — CoreBluetooth needs time to resume after wake.
-        let maxPolls = 20
-        for _ in 0..<maxPolls {
-            let bleState = await firstBLEState()
-            if bleState == .poweredOn { break }
-            try? await clock.sleep(for: .milliseconds(500))
-        }
+        // CoreBluetooth needs time to resume after wake.
+        guard (try? await waitUntilPoweredOn()) != nil else { return }
 
         guard !isUserInitiatedDisconnect else { return }
 
@@ -127,11 +122,6 @@ extension DeskManager {
               let peripheralId = UUID(uuidString: uuidString) else { return }
 
         try? await connect(peripheralId: peripheralId)
-    }
-
-    private func firstBLEState() async -> BLEState {
-        var iterator = bleController.stateStream.makeAsyncIterator()
-        return await iterator.next() ?? .unknown
     }
 }
 

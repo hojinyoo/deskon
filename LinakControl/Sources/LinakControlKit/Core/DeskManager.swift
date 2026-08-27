@@ -3,6 +3,10 @@
 
 import Foundation
 
+// MARK: - Constants
+
+private let powerOnPollInterval: Duration = .milliseconds(100)
+
 // MARK: - DeskManager
 
 /// Actor that owns all desk state and orchestrates BLE operations.
@@ -28,6 +32,10 @@ public actor DeskManager {
     var heartbeatTask: Task<Void, Never>?
     var lastUserAction: ContinuousClock.Instant?
     var isUserInitiatedDisconnect: Bool = false
+
+    /// Latest BLE hardware state, nil until CoreBluetooth reports one.
+    private var bleState: BLEState?
+    private var bleStateTask: Task<Void, Never>?
 
     // MARK: - State observation
 
@@ -83,6 +91,85 @@ public actor DeskManager {
         state
     }
 
+    // MARK: - BLE power state
+
+    /// Suspends until CoreBluetooth reports the central manager is powered on.
+    ///
+    /// Connecting before then is wasted: `retrievePeripherals(withIdentifiers:)` returns
+    /// nothing while the manager is still starting up, so an attempt made during the gap
+    /// fails for a reason that has nothing to do with the desk.
+    ///
+    /// The wait is bounded: Bluetooth switched off is a state the user can fix at any
+    /// time, and waiting on it forever leaves a caller suspended with nothing in the log
+    /// to say why. Giving up instead lets the caller log it and lets the reconnection
+    /// loop retry later.
+    ///
+    /// - Throws: `DeskError.bluetoothUnavailable` carrying the last state seen, both for
+    ///   states no wait can fix (`.unauthorized`, `.unsupported`) and on timeout. The
+    ///   payload is what separates the two.
+    ///
+    /// - Parameter timeout: Defaults to the 20 x 500ms bound this gate replaced.
+    public func waitUntilPoweredOn(timeout: Duration = .seconds(10)) async throws {
+        startBLEStateObserver()
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while true {
+            switch bleState {
+            case .poweredOn:
+                return
+            case .unauthorized, .unsupported:
+                throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
+            default:
+                guard ContinuousClock.now < deadline else {
+                    let last = bleState ?? .unknown
+                    FileLog.debug("waitUntilPoweredOn: gave up, still \(last)", category: "core")
+                    throw DeskError.bluetoothUnavailable(last)
+                }
+                // Real sleep, not `clock`: a TestClock never advances on its own, so
+                // polling it here would hang every test that does not drive it.
+                try await Task.sleep(for: powerOnPollInterval)
+            }
+        }
+    }
+
+    /// Records BLE hardware state from the controller's stream.
+    ///
+    /// Exactly one consumer: an `AsyncStream` hands each element to a single iterator, so
+    /// a second reader would steal updates from this one.
+    private func startBLEStateObserver() {
+        guard bleStateTask == nil else { return }
+        let stream = bleController.stateStream
+        bleStateTask = Task { [weak self] in
+            for await state in stream {
+                guard let self else { return }
+                await self.recordBLEState(state)
+            }
+        }
+    }
+
+    private func recordBLEState(_ state: BLEState) {
+        bleState = state
+    }
+
+    deinit {
+        bleStateTask?.cancel()
+    }
+
+    // MARK: - Config
+
+    /// Re-reads the config values mirrored into `DeskState` and republishes it.
+    ///
+    /// `deskctl` writes config straight to disk, so without this a rename or a preset
+    /// label reaches the CLI (which reloads per request) but not the menu bar, whose
+    /// name and labels are otherwise only written at handshake time.
+    public func reloadConfig() {
+        let config = (try? configStore.load()) ?? .default
+        state.deskName = config.resolvedDeskName
+        for i in 0..<state.presets.count {
+            state.presets[i].label = presetLabel(index: i + 1, config: config)
+        }
+        yieldState()
+    }
+
     // MARK: - Connection lifecycle
 
     /// Scans for nearby LINAK desks and emits each discovered peripheral.
@@ -114,7 +201,8 @@ public actor DeskManager {
             FileLog.debug("connect: starting handshake...", category: "core")
             let result = try await performHandshake(using: bleController)
             FileLog.debug("connect: handshake complete, applying result", category: "core")
-            applyHandshakeResult(result, peripheralId: peripheralId)
+            let peripheralName = await bleController.connectedPeripheralName()
+            applyHandshakeResult(result, peripheralId: peripheralId, peripheralName: peripheralName)
             startHeightNotificationListener()
             startStatusNotificationListener()
             startHeartbeat()
@@ -247,7 +335,7 @@ extension DeskManager {
     }
 
     /// Populates state from a handshake result and persists pairing info.
-    private func applyHandshakeResult(_ result: HandshakeResult, peripheralId: UUID) {
+    private func applyHandshakeResult(_ result: HandshakeResult, peripheralId: UUID, peripheralName: String?) {
         let config = (try? configStore.load()) ?? .default
 
         for i in 0..<state.presets.count {
@@ -257,7 +345,6 @@ extension DeskManager {
 
         state.heightMM = result.currentHeight
         state.connectionState = .connected
-        state.deskName = config.pairedDeskName
         // A fresh connection is a clean slate — clear any fault preserved across
         // a stand-down so the warning does not linger after reconnecting.
         state.needsReference = false
@@ -284,16 +371,35 @@ extension DeskManager {
             )
         }
 
-        persistPairingInfo(peripheralId: peripheralId, existingConfig: config, deskOffsetMM: offset)
+        let persisted = persistPairingInfo(
+            peripheralId: peripheralId,
+            learnedName: peripheralName,
+            existingConfig: config,
+            deskOffsetMM: offset
+        )
+        state.deskName = persisted.resolvedDeskName
         yieldState()
     }
 
-    /// Saves paired desk UUID and offset to config.
-    private func persistPairingInfo(peripheralId: UUID, existingConfig: AppConfig, deskOffsetMM: Int) {
+    /// Saves paired desk UUID, name, and offset to config, returning the saved snapshot.
+    ///
+    /// `learnedName` overwrites any stored name rather than only filling a nil: pairing
+    /// persists the scan-time name, which is a placeholder whenever CoreBluetooth withheld
+    /// `peripheral.name` during the service-filtered scan.
+    private func persistPairingInfo(
+        peripheralId: UUID,
+        learnedName: String?,
+        existingConfig: AppConfig,
+        deskOffsetMM: Int
+    ) -> AppConfig {
         var updated = existingConfig
         updated.pairedDeskUUID = peripheralId.uuidString
         updated.deskOffsetMM = deskOffsetMM
+        if let learnedName {
+            updated.pairedDeskName = learnedName
+        }
         try? configStore.save(updated)
+        return updated
     }
 
     /// Starts the background task that listens to height characteristic notifications.
