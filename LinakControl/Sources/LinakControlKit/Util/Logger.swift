@@ -25,7 +25,7 @@ public enum FileLog {
 
     /// Where lines are appended. Internal so tests can assert they are not aimed at the
     /// installed app's log.
-    static var logURL: URL? = {
+    static let logURL: URL? = {
         // A test run must never append to the log a running app is writing: diagnosis on
         // this project is done by reading that file, and mock handshake values interleaved
         // with live desk telemetry read as real desk behaviour.

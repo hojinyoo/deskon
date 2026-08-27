@@ -137,6 +137,22 @@ final class MaxStrokeConfigTests: XCTestCase {
         XCTAssertEqual(try store.load().maxStrokeMM, 445)
     }
 
+    /// The key is hand-edited - there is no `deskctl config` subcommand for it - and
+    /// `executeMoveToHeight` builds `0...stroke` from it, which traps on a negative bound.
+    func testANegativeStrokeClampsInsteadOfCrashingTheDaemon() throws {
+        let json = Data(#"{"max_stroke_mm":-1}"#.utf8)
+        XCTAssertEqual(try JSONDecoder().decode(AppConfig.self, from: json).maxStrokeMM, 0)
+    }
+
+    /// Past the encoding bound the range would refuse targets the error message accepts.
+    func testAStrokePastTheEncodingBoundClampsToIt() throws {
+        let json = Data(#"{"max_stroke_mm":99999}"#.utf8)
+        XCTAssertEqual(
+            try JSONDecoder().decode(AppConfig.self, from: json).maxStrokeMM,
+            DeskLimits.safeCommandRange.upperBound
+        )
+    }
+
     /// `deskctl config show` prints the config JSON, so the key has to be in it.
     func testTheKeyIsEncoded() throws {
         let data = try JSONEncoder().encode(AppConfig.default)

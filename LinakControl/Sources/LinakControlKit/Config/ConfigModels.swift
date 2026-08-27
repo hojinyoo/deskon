@@ -136,7 +136,13 @@ public struct AppConfig: Codable, Equatable {
         pairedDeskUUID = try c.decodeIfPresent(String.self, forKey: .pairedDeskUUID)
         pairedDeskName = try c.decodeIfPresent(String.self, forKey: .pairedDeskName)
         userDeskName   = try c.decodeIfPresent(String.self, forKey: .userDeskName)
-        maxStrokeMM    = try c.decodeIfPresent(Int.self, forKey: .maxStrokeMM) ?? 650
+        // Clamped: this key is hand-edited, and `executeMoveToHeight` builds `0...stroke`
+        // from it, which traps outright on a negative bound. Above the encoding bound the
+        // range would also refuse targets the error message says it accepts.
+        maxStrokeMM    = min(
+            DeskLimits.safeCommandRange.upperBound,
+            max(0, try c.decodeIfPresent(Int.self, forKey: .maxStrokeMM) ?? 650)
+        )
         unit           = try c.decodeIfPresent(HeightUnit.self, forKey: .unit) ?? .cm
         deskOffsetMM   = try c.decodeIfPresent(Int.self, forKey: .deskOffsetMM) ?? 0
         autoRunUp      = try c.decodeIfPresent(RunMode.self, forKey: .autoRunUp) ?? .manual

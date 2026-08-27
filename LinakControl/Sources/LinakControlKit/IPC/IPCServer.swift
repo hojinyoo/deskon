@@ -308,8 +308,10 @@ public final class IPCServer: @unchecked Sendable {
         do {
             try await deskManager.goToPreset(index: index)
             let state = await deskManager.currentState
+            let config = (try? configStore.load()) ?? .default
+            let offset = deskOffset(state: state, config: config)
             let rawMM = state.presets.first(where: { $0.index == index })?.heightMM
-            return IPCResponse(id: request.id, result: .ok(targetMM: rawMM.map { $0 + state.deskOffsetMM }), error: nil)
+            return IPCResponse(id: request.id, result: .ok(targetMM: rawMM.map { $0 + offset }), error: nil)
         } catch {
             return deskErrorResponse(id: request.id, error: error)
         }
@@ -396,7 +398,7 @@ public final class IPCServer: @unchecked Sendable {
 extension IPCServer {
 
     func buildStatusResult(from state: DeskState, config: AppConfig) -> StatusResult {
-        let offset = state.deskOffsetMM
+        let offset = deskOffset(state: state, config: config)
         let heightDisplay = state.heightMM.map { HeightConverter.display(mm: $0 + offset, unit: config.unit) }
         let presets = state.presets.map { preset in
             PresetInfo(

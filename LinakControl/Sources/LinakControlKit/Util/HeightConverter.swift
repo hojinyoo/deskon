@@ -13,13 +13,20 @@ public enum HeightConverter {
     }
 
     /// Convert a value the user typed in `unit` to mm (e.g. 110.5 cm -> 1105).
-    public static func millimeters(from value: Double, unit: HeightUnit) -> Int {
+    ///
+    /// Returns nil for a number no desk height can be. `Double(_: String)` accepts
+    /// "inf" and "nan", and `Int(_: Double)` traps on either, so a typed height has to
+    /// be screened here rather than at each call site.
+    public static func millimeters(from value: Double, unit: HeightUnit) -> Int? {
+        let mm: Double
         switch unit {
         case .cm:
-            return Int((value * 10.0).rounded())
+            mm = (value * 10.0).rounded()
         case .inch:
-            return Int((value * 25.4).rounded())
+            mm = (value * 25.4).rounded()
         }
+        guard mm.isFinite, abs(mm) <= Double(Int32.max) else { return nil }
+        return Int(mm)
     }
 
     /// Convert height in mm to a localized display string.

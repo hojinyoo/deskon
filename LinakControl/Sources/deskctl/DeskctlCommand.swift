@@ -31,12 +31,15 @@ struct DeskctlCommand: ParsableCommand {
     }
 
     /// argument-parser reads any leading-dash token as an option, so a typed negative
-    /// height dies as "Unknown option '-5'" before GotoCommand ever sees it.
+    /// height dies as "Unknown option '-5'" before GotoCommand ever sees it. Matched
+    /// anywhere after `goto`, not only as the lone argument: `goto -5 --json` fails the
+    /// same way.
     private static func rejectNegativeHeight() {
         let args = CommandLine.arguments.dropFirst()
-        guard args.first == "goto", args.count == 2,
-              let last = args.last, let value = Double(last), value < 0 else { return }
-        CLIFormatter.printError("Height must be above 0, and \(last) is not.")
+        guard args.first == "goto",
+              let negative = args.dropFirst().first(where: { Double($0).map { $0 < 0 } ?? false })
+        else { return }
+        CLIFormatter.printError(negativeHeightMessage(negative))
         Foundation.exit(ExitCode.validationFailure.rawValue)
     }
 }

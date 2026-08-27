@@ -29,7 +29,10 @@ struct GotoCommand: ParsableCommand {
 
     func run() throws {
         let unit = configuredUnit()
-        let targetMM = HeightConverter.millimeters(from: height, unit: unit)
+        guard let targetMM = HeightConverter.millimeters(from: height, unit: unit), targetMM >= 0 else {
+            CLIFormatter.printError(negativeHeightMessage("\(height)"))
+            throw ExitCode.validationFailure
+        }
         let reached = try runIPC { try $0.goTo(heightMM: targetMM) }
         print("Moving to \(HeightConverter.display(mm: reached ?? targetMM, unit: unit))...")
     }
