@@ -14,8 +14,23 @@ public struct AppConfig: Codable, Equatable {
     /// CoreBluetooth peripheral identifier for the paired desk.
     public var pairedDeskUUID: String?
 
-    /// Human-readable desk name shown in the UI.
+    /// Desk name learned from the peripheral after connecting.
     public var pairedDeskName: String?
+
+    /// Desk name chosen by the user. Wins over `pairedDeskName` wherever the desk is named.
+    public var userDeskName: String?
+
+    /// Name to show for the paired desk, user-set first.
+    public var resolvedDeskName: String? {
+        userDeskName ?? pairedDeskName
+    }
+
+    /// Applies a user-set desk name. Empty or whitespace-only input clears it so the
+    /// learned name comes back instead of a blank label.
+    public mutating func setUserDeskName(_ name: String?) {
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        userDeskName = (trimmed?.isEmpty ?? true) ? nil : trimmed
+    }
 
     // MARK: Display
 
@@ -55,6 +70,7 @@ public struct AppConfig: Codable, Equatable {
     public init(
         pairedDeskUUID: String? = nil,
         pairedDeskName: String? = nil,
+        userDeskName: String? = nil,
         unit: HeightUnit = .cm,
         deskOffsetMM: Int = 0,
         autoRunUp: RunMode = .manual,
@@ -66,6 +82,7 @@ public struct AppConfig: Codable, Equatable {
     ) {
         self.pairedDeskUUID = pairedDeskUUID
         self.pairedDeskName = pairedDeskName
+        self.userDeskName = userDeskName
         self.unit = unit
         self.deskOffsetMM = deskOffsetMM
         self.autoRunUp = autoRunUp
@@ -81,6 +98,7 @@ public struct AppConfig: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case pairedDeskUUID   = "paired_desk_uuid"
         case pairedDeskName   = "paired_desk_name"
+        case userDeskName     = "user_desk_name"
         case unit
         case deskOffsetMM     = "desk_offset_mm"
         case autoRunUp        = "auto_run_up"
@@ -107,6 +125,7 @@ public struct AppConfig: Codable, Equatable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         pairedDeskUUID = try c.decodeIfPresent(String.self, forKey: .pairedDeskUUID)
         pairedDeskName = try c.decodeIfPresent(String.self, forKey: .pairedDeskName)
+        userDeskName   = try c.decodeIfPresent(String.self, forKey: .userDeskName)
         unit           = try c.decodeIfPresent(HeightUnit.self, forKey: .unit) ?? .cm
         deskOffsetMM   = try c.decodeIfPresent(Int.self, forKey: .deskOffsetMM) ?? 0
         autoRunUp      = try c.decodeIfPresent(RunMode.self, forKey: .autoRunUp) ?? .manual
@@ -135,6 +154,7 @@ public struct AppConfig: Codable, Equatable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encodeIfPresent(pairedDeskUUID, forKey: .pairedDeskUUID)
         try c.encodeIfPresent(pairedDeskName, forKey: .pairedDeskName)
+        try c.encodeIfPresent(userDeskName, forKey: .userDeskName)
         try c.encode(unit, forKey: .unit)
         try c.encode(deskOffsetMM, forKey: .deskOffsetMM)
         try c.encode(autoRunUp, forKey: .autoRunUp)

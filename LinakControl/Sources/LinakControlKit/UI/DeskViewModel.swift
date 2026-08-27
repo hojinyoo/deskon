@@ -213,13 +213,13 @@ public final class DeskViewModel: ObservableObject {
     /// `isFirstRun = false` so `PopoverView` transitions to the normal UI.
     public func completeFirstRun() {
         guard let peripheralId = selectedPeripheralId else { return }
-        // deskName was refreshed from the connected peripheral; selectedDeskName is the
-        // scan-time placeholder and must not be written back over it.
-        let name = deskName ?? selectedDeskName
+        let scannedName = selectedDeskName
         Task {
             var config = (try? configStore.load()) ?? .default
             config.pairedDeskUUID = peripheralId.uuidString
-            config.pairedDeskName = name
+            // Connecting already refreshed pairedDeskName from the peripheral; the
+            // scan-time name only fills in when that never happened.
+            config.pairedDeskName = config.pairedDeskName ?? scannedName
             try? configStore.save(config)
         }
         isFirstRun = false
@@ -334,6 +334,7 @@ public final class DeskViewModel: ObservableObject {
         persistConfig {
             $0.pairedDeskUUID = nil
             $0.pairedDeskName = nil
+            $0.userDeskName = nil
         }
         // Reset UI state immediately — the async disconnect state update
         // arrives too late, causing a brief "connected" flash.

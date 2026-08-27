@@ -290,7 +290,7 @@ extension DeskManager {
             existingConfig: config,
             deskOffsetMM: offset
         )
-        state.deskName = persisted.pairedDeskName
+        state.deskName = persisted.resolvedDeskName
         yieldState()
     }
 

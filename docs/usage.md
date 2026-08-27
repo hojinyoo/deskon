@@ -107,12 +107,14 @@ All commands are subcommands of `deskctl`. Every command except `config show`, `
 | `deskctl config show` | Print the full config JSON. | — |
 | `deskctl config reset` | Wipe config back to defaults (clears pairing). Prompts unless forced. | `--force` |
 | `deskctl config label <1-4> [text]` | Show, set, or clear a preset label. | `--clear` |
+| `deskctl config name [text]` | Show, set, or clear the desk name. Overrides the name learned over BLE. | `--clear` |
 | `deskctl service status` | Check whether the daemon (the menu bar app) is reachable. | — |
 | `deskctl service stop` | Send SIGTERM to the running daemon. | — |
 | `deskctl service install` | Print instructions for enabling Start-at-Login. | — |
 
 A few details that are not obvious from `--help`:
 
+- **`config name` overrides the BLE name** - the desk reports whatever LINAK stamped on it (`DESK 3424`). Setting a name wins everywhere the desk is named; clearing it falls back to the reported one. The menu bar app picks up a rename on its next connection.
 - **Preset indices are validated** — `deskctl preset 5` returns a `ValidationError`. The same goes for labels.
 - **`config show` reads the config file directly**, so it works even if the daemon is stopped. Same for `config reset` and `config label`.
 - **`config reset` clears pairing too** — the next app launch goes back to first-run scanning. Use `--force` only in scripts where you're certain.

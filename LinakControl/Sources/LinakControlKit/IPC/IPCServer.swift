@@ -361,7 +361,9 @@ extension IPCServer {
         }
         return StatusResult(
             connected: state.connectionState == .connected,
-            deskName: state.deskName,
+            // Read the user-set name from config, not state: `deskctl config name`
+            // writes it directly and the daemon has no reason to reconnect.
+            deskName: config.userDeskName ?? state.deskName,
             heightMM: state.heightMM.map { $0 + offset },
             heightDisplay: heightDisplay,
             unit: config.unit.rawValue,

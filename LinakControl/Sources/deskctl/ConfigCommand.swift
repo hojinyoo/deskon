@@ -1,5 +1,5 @@
 // ConfigCommand.swift
-// deskctl config <reset|show>
+// deskctl config <show|reset|label|name>
 
 import ArgumentParser
 import Foundation
@@ -13,6 +13,7 @@ struct ConfigCommand: ParsableCommand {
             ConfigShowCommand.self,
             ConfigResetCommand.self,
             ConfigLabelCommand.self,
+            ConfigNameCommand.self,
         ]
     )
 }
@@ -106,6 +107,48 @@ struct ConfigLabelCommand: ParsableCommand {
         } else {
             let label = config.presetLabels[index - 1] ?? "(none)"
             print("Preset \(index): \(label)")
+        }
+    }
+}
+
+// MARK: - deskctl config name
+
+struct ConfigNameCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "name",
+        abstract: "Set or clear the desk name.",
+        discussion: """
+        The name set here wins over the name learned from the desk over BLE;
+        clearing it falls back to that learned name.
+
+        Examples:
+          deskctl config name "Standing Desk"
+          deskctl config name --clear
+        """
+    )
+
+    @Argument(help: "Desk name. Omit to show the current name.")
+    var text: String?
+
+    @Flag(name: .long, help: "Remove the name you set and fall back to the learned one.")
+    var clear: Bool = false
+
+    func run() throws {
+        let store = ConfigStore()
+        var config = (try? store.load()) ?? .default
+
+        guard clear || text != nil else {
+            print("Desk: \(config.resolvedDeskName ?? "(none)")")
+            return
+        }
+
+        config.setUserDeskName(clear ? nil : text)
+        try store.save(config)
+
+        if let name = config.userDeskName {
+            print("Desk name set to \"\(name)\".")
+        } else {
+            print("Desk name cleared. Using \(config.pairedDeskName ?? "the name learned over BLE").")
         }
     }
 }
