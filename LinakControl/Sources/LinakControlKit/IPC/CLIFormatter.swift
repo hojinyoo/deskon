@@ -61,7 +61,7 @@ public enum CLIFormatter {
         var lines = [
             "LinakControl Daemon",
             "  Connection: \(status.connected ? "connected" : "disconnected")",
-            "  Desk:       \(status.deskName ?? "Unknown")",
+            "  Desk:       \(status.deskName ?? "unknown")",
             "  Height:     \(formatHeight(status))",
         ]
         let presets = formatPresets(status.presets, active: status.activePreset, unit: unit(of: status))

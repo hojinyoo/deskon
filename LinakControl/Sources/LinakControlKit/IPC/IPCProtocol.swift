@@ -20,6 +20,7 @@ public enum IPCMethod: String, Codable, Sendable {
     case stop
     case goPreset
     case savePreset
+    case reloadConfig
 }
 
 // MARK: - IPCParams

@@ -99,10 +99,12 @@ struct ConfigLabelCommand: ParsableCommand {
         if clear {
             config.presetLabels[index - 1] = nil
             try store.save(config)
+            notifyDaemon()
             print("Preset \(index) label cleared.")
         } else if let text {
             config.presetLabels[index - 1] = text
             try store.save(config)
+            notifyDaemon()
             print("Preset \(index) label set to \"\(text)\".")
         } else {
             let label = config.presetLabels[index - 1] ?? "(none)"
@@ -144,6 +146,7 @@ struct ConfigNameCommand: ParsableCommand {
 
         config.setUserDeskName(clear ? nil : text)
         try store.save(config)
+        notifyDaemon()
 
         if let name = config.userDeskName {
             print("Desk name set to \"\(name)\".")
@@ -151,4 +154,12 @@ struct ConfigNameCommand: ParsableCommand {
             print("Desk name cleared. Using \(config.pairedDeskName ?? "the name learned over BLE").")
         }
     }
+}
+
+// MARK: - Daemon notification
+
+/// Nudges a running daemon to re-read config. Silent when none is running: the config
+/// on disk is already correct and there is no live state to refresh.
+private func notifyDaemon() {
+    try? IPCClient().reloadConfig()
 }

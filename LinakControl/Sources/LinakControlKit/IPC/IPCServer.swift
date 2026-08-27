@@ -259,6 +259,8 @@ public final class IPCServer: @unchecked Sendable {
             return await handleGoPreset(request)
         case .savePreset:
             return await handleSavePreset(request)
+        case .reloadConfig:
+            return await handleReloadConfig(request)
         }
     }
 
@@ -311,6 +313,11 @@ public final class IPCServer: @unchecked Sendable {
         }
     }
 
+    private func handleReloadConfig(_ request: IPCRequest) async -> IPCResponse {
+        await deskManager.reloadConfig()
+        return IPCResponse(id: request.id, result: .ok(targetMM: nil), error: nil)
+    }
+
     private func handleSavePreset(_ request: IPCRequest) async -> IPCResponse {
         guard let params = request.params, case .preset(let index) = params else {
             return makeError(id: request.id, code: .invalidRequest, message: "missing preset index")
@@ -361,9 +368,7 @@ extension IPCServer {
         }
         return StatusResult(
             connected: state.connectionState == .connected,
-            // Read the user-set name from config, not state: `deskctl config name`
-            // writes it directly and the daemon has no reason to reconnect.
-            deskName: config.userDeskName ?? state.deskName,
+            deskName: state.deskName,
             heightMM: state.heightMM.map { $0 + offset },
             heightDisplay: heightDisplay,
             unit: config.unit.rawValue,
