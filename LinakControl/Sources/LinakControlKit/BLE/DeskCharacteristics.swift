@@ -42,10 +42,10 @@ public enum DeskUUID {
 
     // MARK: Reference Input Service (0x0030)
 
-    /// Reference Input service — accepts target position and heartbeat writes.
+    /// Reference Input service: accepts target position writes.
     public static let referenceInputService = CBUUID(string: "99fa0030-338a-1024-8a49-009c0215f78a")
 
-    /// Target/Heartbeat characteristic (Write) — move-to target or heartbeat to prevent sleep.
+    /// Target characteristic (Write) for the reference input move-to target.
     public static let targetHeartbeat = CBUUID(string: "99fa0031-338a-1024-8a49-009c0215f78a")
 }
 
@@ -74,10 +74,7 @@ public enum DeskCommand {
     /// Preflight — enable the Reference Input service before sending move-to commands.
     public static let preflight = Data([0x00, 0x00])
 
-    // MARK: Target/Heartbeat characteristic commands (written to DeskUUID.targetHeartbeat / 0x0031)
-
-    /// Prevent desk from entering sleep while stationary.
-    public static let heartbeat = Data([0x01, 0x80])
+    // MARK: Target characteristic commands (written to DeskUUID.targetHeartbeat / 0x0031)
 
     /// Move to an absolute height expressed in 0.1 mm units (little-endian uint16).
     ///

@@ -20,6 +20,7 @@ public enum IPCMethod: String, Codable, Sendable {
     case stop
     case goPreset
     case savePreset
+    case goTo
     case reloadConfig
 }
 
@@ -29,6 +30,8 @@ public enum IPCMethod: String, Codable, Sendable {
 public enum IPCParams: Codable, Sendable {
     case move(direction: String, mode: String?)
     case preset(index: Int)
+    /// Absolute target as the user sees it: display millimetres, desk offset included.
+    case height(mm: Int)
 
     // MARK: CodingKeys
 
@@ -36,11 +39,14 @@ public enum IPCParams: Codable, Sendable {
         case direction
         case mode
         case index
+        case heightMM
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let index = try container.decodeIfPresent(Int.self, forKey: .index) {
+        if let mm = try container.decodeIfPresent(Int.self, forKey: .heightMM) {
+            self = .height(mm: mm)
+        } else if let index = try container.decodeIfPresent(Int.self, forKey: .index) {
             self = .preset(index: index)
         } else {
             let direction = try container.decode(String.self, forKey: .direction)
@@ -57,6 +63,8 @@ public enum IPCParams: Codable, Sendable {
             try container.encodeIfPresent(mode, forKey: .mode)
         case .preset(let index):
             try container.encode(index, forKey: .index)
+        case .height(let mm):
+            try container.encode(mm, forKey: .heightMM)
         }
     }
 }

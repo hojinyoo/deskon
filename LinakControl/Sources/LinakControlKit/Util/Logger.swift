@@ -23,7 +23,16 @@ public enum FileLog {
         return f
     }()
 
-    private static var logURL: URL? = {
+    /// Where lines are appended. Internal so tests can assert they are not aimed at the
+    /// installed app's log.
+    static let logURL: URL? = {
+        // A test run must never append to the log a running app is writing: diagnosis on
+        // this project is done by reading that file, and mock handshake values interleaved
+        // with live desk telemetry read as real desk behaviour.
+        guard !isRunningTests else {
+            return FileManager.default.temporaryDirectory
+                .appendingPathComponent("LinakControlTests-\(ProcessInfo.processInfo.processIdentifier).log")
+        }
         let dir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/LinakControl", isDirectory: true)
         try? FileManager.default.createDirectory(
@@ -32,6 +41,10 @@ public enum FileLog {
         )
         return dir.appendingPathComponent("debug.log")
     }()
+
+    static var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
+    }
 
     /// Persistent file handle — opened once, reused for all writes.
     /// Avoids file-descriptor churn at ~10Hz during desk movement.

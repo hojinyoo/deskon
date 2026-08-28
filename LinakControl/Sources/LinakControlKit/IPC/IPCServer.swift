@@ -259,6 +259,8 @@ public final class IPCServer: @unchecked Sendable {
             return await handleGoPreset(request)
         case .savePreset:
             return await handleSavePreset(request)
+        case .goTo:
+            return await handleGoTo(request)
         case .reloadConfig:
             return await handleReloadConfig(request)
         }
@@ -306,11 +308,50 @@ public final class IPCServer: @unchecked Sendable {
         do {
             try await deskManager.goToPreset(index: index)
             let state = await deskManager.currentState
-            let targetMM = state.presets.first(where: { $0.index == index })?.heightMM
-            return IPCResponse(id: request.id, result: .ok(targetMM: targetMM), error: nil)
+            let config = (try? configStore.load()) ?? .default
+            let offset = deskOffset(state: state, config: config)
+            let rawMM = state.presets.first(where: { $0.index == index })?.heightMM
+            return IPCResponse(id: request.id, result: .ok(targetMM: rawMM.map { $0 + offset }), error: nil)
         } catch {
             return deskErrorResponse(id: request.id, error: error)
         }
+    }
+
+    private func handleGoTo(_ request: IPCRequest) async -> IPCResponse {
+        guard let params = request.params, case .height(let displayMM) = params else {
+            return makeError(id: request.id, code: .invalidRequest, message: "missing height")
+        }
+        // Clients speak display heights; the desk only knows raw ones.
+        let state = await deskManager.currentState
+        let config = (try? configStore.load()) ?? .default
+        let offset = deskOffset(state: state, config: config)
+        do {
+            try await deskManager.moveToHeight(mm: displayMM - offset)
+            return IPCResponse(id: request.id, result: .ok(targetMM: displayMM), error: nil)
+        } catch DeskError.targetOutOfRange {
+            return makeError(
+                id: request.id,
+                code: .general,
+                message: outOfRangeMessage(asked: displayMM, state: state, config: config)
+            )
+        } catch {
+            return deskErrorResponse(id: request.id, error: error)
+        }
+    }
+
+    /// State carries the offset only once a handshake has run; config carries it across
+    /// launches, so a request that arrives before the desk connects still converts.
+    private func deskOffset(state: DeskState, config: AppConfig) -> Int {
+        state.deskOffsetMM != 0 ? state.deskOffsetMM : config.deskOffsetMM
+    }
+
+    private func outOfRangeMessage(asked displayMM: Int, state: DeskState, config: AppConfig) -> String {
+        let unit = config.unit
+        let offset = deskOffset(state: state, config: config)
+        let low = HeightConverter.display(mm: offset, unit: unit)
+        let high = HeightConverter.display(mm: offset + config.maxStrokeMM, unit: unit)
+        return "\(HeightConverter.display(mm: displayMM, unit: unit)) is outside this desk's range "
+            + "\(low) to \(high). Raise max_stroke_mm in config if the desk travels further."
     }
 
     private func handleReloadConfig(_ request: IPCRequest) async -> IPCResponse {
@@ -357,7 +398,7 @@ public final class IPCServer: @unchecked Sendable {
 extension IPCServer {
 
     func buildStatusResult(from state: DeskState, config: AppConfig) -> StatusResult {
-        let offset = state.deskOffsetMM
+        let offset = deskOffset(state: state, config: config)
         let heightDisplay = state.heightMM.map { HeightConverter.display(mm: $0 + offset, unit: config.unit) }
         let presets = state.presets.map { preset in
             PresetInfo(

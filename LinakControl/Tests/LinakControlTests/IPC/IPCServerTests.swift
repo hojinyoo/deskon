@@ -471,3 +471,138 @@ final class IPCServerStatusBuilderTests: XCTestCase {
         XCTAssertEqual(result.presets[1].label, "Stand")
     }
 }
+
+// MARK: - Absolute Move Routing
+
+final class IPCServerGoToTests: XCTestCase {
+
+    /// Clients speak the height `status` prints, which includes the desk offset. The desk
+    /// only understands raw heights, so the server has to take the offset back off.
+    func testGoToConvertsTheDisplayHeightToARawTarget() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 660
+        let configStore = makeTempConfigStore(config: seeded)
+
+        var heightCont: AsyncStream<Data>.Continuation!
+        let heightStream = AsyncStream<Data> { heightCont = $0 }
+        let mock = MockBLEController()
+        mock.mockReadResponses[DeskUUID.outputMask] = HandshakeFixtures.validOutputMask
+        mock.mockReadResponses[DeskUUID.height] = HandshakeFixtures.heightNotification730mm
+        mock.mockNotificationStreams[DeskUUID.dpg] = makeDPGStream(
+            responses: HandshakeFixtures.happyPathDPGResponses
+        )
+        mock.mockNotificationStreams[DeskUUID.height] = heightStream
+
+        let manager = DeskManager(bleController: mock, configStore: configStore)
+        let connect = Task { try await manager.connect(peripheralId: UUID()) }
+        heightCont.yield(makeHeightPacket(mm: 730))
+        try await connect.value
+
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+        let priorCount = mock.writtenData.count
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-1", method: .goTo, params: .height(mm: 1060))
+        )
+
+        try await Task.sleep(for: .milliseconds(150))
+        let expectedRaw = DeskCommand.moveTo(tenthsOfMm: UInt16(400 * 10))
+        let targetWrites = mock.writtenData.dropFirst(priorCount).filter {
+            $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedRaw
+        }
+        XCTAssertGreaterThanOrEqual(targetWrites.count, 1, "1060mm displayed at a 660mm offset is 400mm raw")
+
+        guard case .ok(let targetMM)? = response.result else {
+            return XCTFail("goTo must answer ok, got \(String(describing: response.result))")
+        }
+        XCTAssertEqual(targetMM, 1060, "the reply echoes the height the client asked for")
+
+        heightCont.finish()
+        await manager.disconnect()
+    }
+
+    /// `preset` prints the height this reply carries. status adds the desk offset to every
+    /// height it reports, so a preset reply without it named a different height than status
+    /// did for the same slot.
+    func testGoPresetAnswersWithTheDisplayHeight() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 660
+        let configStore = makeTempConfigStore(config: seeded)
+
+        var heightCont: AsyncStream<Data>.Continuation!
+        let heightStream = AsyncStream<Data> { heightCont = $0 }
+        let mock = MockBLEController()
+        mock.mockReadResponses[DeskUUID.outputMask] = HandshakeFixtures.validOutputMask
+        mock.mockReadResponses[DeskUUID.height] = HandshakeFixtures.heightNotification730mm
+        mock.mockNotificationStreams[DeskUUID.dpg] = makeDPGStream(
+            responses: HandshakeFixtures.happyPathDPGResponses
+        )
+        mock.mockNotificationStreams[DeskUUID.height] = heightStream
+
+        let manager = DeskManager(bleController: mock, configStore: configStore)
+        let connect = Task { try await manager.connect(peripheralId: UUID()) }
+        heightCont.yield(makeHeightPacket(mm: 730))
+        try await connect.value
+
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+        let response = await server.handleRequest(
+            IPCRequest(id: "preset-2", method: .goPreset, params: .preset(index: 2))
+        )
+
+        guard case .ok(let targetMM)? = response.result else {
+            return XCTFail("goPreset must answer ok, got \(String(describing: response.result))")
+        }
+        let status = await server.buildStatusResult(from: manager.currentState, config: try configStore.load())
+        XCTAssertEqual(
+            targetMM, status.presets.first(where: { $0.index == 2 })?.heightMM,
+            "preset and status must name the same height for the same slot"
+        )
+        XCTAssertEqual(targetMM, 1105 + 660, "raw 1105mm at a 660mm offset displays as 1765mm")
+
+        heightCont.finish()
+        await manager.disconnect()
+    }
+
+    /// The rejection has to name the range, or the only way to find it is the source.
+    func testGoToOutOfRangeNamesTheAcceptedRangeInTheConfiguredUnit() async throws {
+        var seeded = AppConfig.default
+        seeded.deskOffsetMM = 680
+        let configStore = makeTempConfigStore(config: seeded)
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-far", method: .goTo, params: .height(mm: 3000))
+        )
+
+        let message = try XCTUnwrap(response.error?.message)
+        XCTAssertTrue(message.contains("300 cm"), "name the target that was refused: \(message)")
+        XCTAssertTrue(message.contains("68 cm"), "name the bottom of the range: \(message)")
+        XCTAssertTrue(message.contains("133 cm"), "name the top of the range: \(message)")
+        XCTAssertTrue(message.contains("max_stroke_mm"), "name the setting that moves it: \(message)")
+    }
+
+    /// Out of range is decided before the connection is, so an obviously bad target reads
+    /// as a bad target rather than as a disconnected desk.
+    func testGoToOutOfRangeIsRefusedEvenWhenDisconnected() async throws {
+        let configStore = makeTempConfigStore()
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(
+            IPCRequest(id: "goto-far", method: .goTo, params: .height(mm: 3000))
+        )
+
+        XCTAssertNotEqual(response.error?.code, IPCErrorCode.notConnected.rawValue)
+        XCTAssertTrue(try XCTUnwrap(response.error?.message).contains("outside this desk's range"))
+    }
+
+    func testGoToWithoutParamsReturnsInvalidRequest() async throws {
+        let configStore = makeTempConfigStore()
+        let manager = makeDisconnectedManager(configStore: configStore)
+        let server = IPCServer(deskManager: manager, configStore: configStore, socketPath: makeTempSocketPath())
+
+        let response = await server.handleRequest(IPCRequest(id: "goto-bad", method: .goTo, params: nil))
+
+        XCTAssertEqual(response.error?.code, IPCErrorCode.invalidRequest.rawValue)
+    }
+}

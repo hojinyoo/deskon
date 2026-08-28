@@ -28,7 +28,7 @@ struct PresetCommand: ParsableCommand {
             print("Saved current height to preset \(index).")
         } else {
             let targetMM = try runIPC { try $0.goPreset(index: index) }
-            let heightStr = targetMM.map { String(format: "%.1f cm", Double($0) / 10) } ?? "unknown"
+            let heightStr = targetMM.map { HeightConverter.display(mm: $0, unit: configuredUnit()) } ?? "unknown"
             print("Moving to preset \(index) (\(heightStr))...")
         }
     }

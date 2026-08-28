@@ -110,7 +110,7 @@ LinakControl/
 - BLE layer uses protocol abstraction (`BLEControllerProtocol`) for testability
 - Height values from BLE are raw (relative to desk zero); display adds user-configured offset
 - DPG1C session requires USER_ID read before queries respond
-- Heartbeat suppressed during active movement (shared characteristic 0x0031)
+- Nothing is written to the desk while connected and idle: periodic writes to reference input (0x0031) lock out the desk's own control panel
 
 ## Configuration
 
@@ -129,7 +129,7 @@ The LINAK DPG1C desk communicates via four BLE services:
 | Control | 0x0001 | Movement commands (up/down/stop/wake) |
 | DPG | 0x0010 | Configuration queries (capabilities, presets, user ID) |
 | Reference Output | 0x0020 | Height notifications, output mask |
-| Reference Input | 0x0030 | Move-to targets, heartbeat |
+| Reference Input | 0x0030 | Move-to targets |
 
 DPG queries use 3-byte read format `[0x7F, cmd, 0x00]` and require USER_ID session activation before responding. Height values are uint16 in 0.1mm units (little-endian). See `DeskCharacteristics.swift` and `DeskProtocol.swift` for full protocol details.
 

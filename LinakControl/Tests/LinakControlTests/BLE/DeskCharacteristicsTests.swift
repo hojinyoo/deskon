@@ -81,10 +81,6 @@ final class DeskCharacteristicsTests: XCTestCase {
         XCTAssertEqual(DeskCommand.preflight, Data([0x00, 0x00]))
     }
 
-    func testHeartbeatBytes() {
-        XCTAssertEqual(DeskCommand.heartbeat, Data([0x01, 0x80]))
-    }
-
     func testGetCapabilitiesBytes() {
         XCTAssertEqual(DeskCommand.getCapabilities, Data([0x7F, 0x80, 0x00]))
     }

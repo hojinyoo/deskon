@@ -25,9 +25,26 @@ extension DeskManager {
     func executeGoToPreset(index: Int) async throws {
         FileLog.debug("executeGoToPreset(\(index))", category: "core")
         try await ensureConnectedForAction()
-        try await recordUserAction()
-
         let targetMM = try resolvePresetHeight(index)
+        try await startMoveToHeight(targetMM, preset: index)
+    }
+
+    /// Same control loop as a preset recall, for a target the caller supplies.
+    ///
+    /// Unlike a preset, this target did not come from the desk, so it is checked against
+    /// the desk's travel before anything reaches BLE. `DeskLimits.safeCommandRange` is not
+    /// that check: at `UInt16(mm * 10)` it is an encoding bound, and 6500mm is 6.5 metres.
+    func executeMoveToHeight(_ targetMM: Int) async throws {
+        FileLog.debug("executeMoveToHeight(\(targetMM))", category: "core")
+        let stroke = ((try? configStore.load()) ?? .default).maxStrokeMM
+        guard (0...stroke).contains(targetMM) else {
+            throw DeskError.targetOutOfRange(targetMM)
+        }
+        try await ensureConnectedForAction()
+        try await startMoveToHeight(targetMM, preset: nil)
+    }
+
+    private func startMoveToHeight(_ targetMM: Int, preset: Int?) async throws {
         try guardHeightInRange(targetMM)
 
         await cancelPresetMoveTask()
@@ -37,7 +54,7 @@ extension DeskManager {
         try? await bleController.write(data: DeskCommand.wakeUp, to: DeskUUID.command, type: .withoutResponse)
 
         updateState {
-            $0.targetPreset = index
+            $0.targetPreset = preset
             $0.isMoving = true
             // Optimistic: a fresh recall clears any prior stall/fault flag.
             $0.needsReference = false
@@ -89,7 +106,6 @@ extension DeskManager {
     private func startPresetControlLoop(targetMM: Int) {
         let rawTarget = UInt16(targetMM * 10)
         let targetData = DeskCommand.moveTo(tenthsOfMm: rawTarget)
-        let controller = bleController
         let clockRef = clock
         let deadline = clock.now().advanced(by: presetTimeout)
 
@@ -97,7 +113,6 @@ extension DeskManager {
             await self?.runPresetLoop(
                 targetMM: targetMM,
                 targetData: targetData,
-                controller: controller,
                 clock: clockRef,
                 deadline: deadline
             )
@@ -111,7 +126,6 @@ extension DeskManager {
     private func runPresetLoop(
         targetMM: Int,
         targetData: Data,
-        controller: any BLEControllerProtocol,
         clock: any ClockProtocol,
         deadline: ContinuousClock.Instant
     ) async {
@@ -121,11 +135,10 @@ extension DeskManager {
         while !Task.isCancelled {
             if hasArrived(at: targetMM) { break }
             if clock.now() >= deadline { break }
-            try? await controller.write(
-                data: targetData,
-                to: DeskUUID.targetHeartbeat,
-                type: .withoutResponse
-            )
+            guard await writeLoopCommand(targetData, to: DeskUUID.targetHeartbeat) else {
+                handleLinkLoss()
+                return
+            }
             try? await clock.sleep(for: presetLoopInterval)
 
             if tracker.isStalled(height: state.heightMM, now: clock.now()) {

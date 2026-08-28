@@ -18,7 +18,7 @@ private struct PresetTestSetup {
 ///
 /// The height stream remains open after this function returns. Call `heightCont.yield(...)`
 /// to inject height notifications and `heightCont.finish()` when done.
-private func makePresetTestSetup() async throws -> PresetTestSetup {
+private func makePresetTestSetup(config: AppConfig? = nil) async throws -> PresetTestSetup {
     var heightCont: AsyncStream<Data>.Continuation!
     let heightStream = AsyncStream<Data> { cont in heightCont = cont }
 
@@ -28,7 +28,7 @@ private func makePresetTestSetup() async throws -> PresetTestSetup {
     mock.mockNotificationStreams[DeskUUID.dpg] = makePresetDPGStream()
     mock.mockNotificationStreams[DeskUUID.height] = heightStream
 
-    let store = makeTempConfigStore()
+    let store = makeTempConfigStore(config: config)
     let manager = DeskManager(bleController: mock, configStore: store)
 
     // Run connect in a task so we can emit the initial height to unblock the handshake.
@@ -379,5 +379,155 @@ final class DeskManagerPresetTimeoutTests: XCTestCase {
         XCTAssertNil(state.targetPreset, "targetPreset must be nil after cancellation")
 
         setup.heightCont.finish()
+    }
+}
+
+// MARK: - Absolute Move
+
+final class DeskManagerAbsoluteMoveTests: XCTestCase {
+
+    func testMoveToHeightDrivesTheSameControlLoopAsAPreset() async throws {
+        let setup = try await makePresetTestSetup()
+        let priorCount = setup.mock.writtenData.count
+
+        let move = Task { try await setup.manager.moveToHeight(mm: 400) }
+        try await Task.sleep(for: .milliseconds(350))
+        setup.heightCont.yield(makeHeightPacket(mm: 400))
+        setup.heightCont.finish()
+        try await move.value
+
+        let expectedTarget = DeskCommand.moveTo(tenthsOfMm: UInt16(400 * 10))
+        let targetWrites = setup.mock.writtenData.dropFirst(priorCount).filter {
+            $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedTarget
+        }
+        XCTAssertGreaterThanOrEqual(targetWrites.count, 2, "goto must repeat the move-to target")
+    }
+
+    func testMoveToHeightRejectsATargetPastTheDeskStroke() async throws {
+        let setup = try await makePresetTestSetup()
+        let priorCount = setup.mock.writtenData.count
+        let stroke = AppConfig.default.maxStrokeMM
+
+        do {
+            try await setup.manager.moveToHeight(mm: stroke + 1)
+            XCTFail("a target past the desk range must be refused, not driven into an end stop")
+        } catch DeskError.targetOutOfRange(let mm) {
+            XCTAssertEqual(mm, stroke + 1)
+        }
+
+        XCTAssertEqual(
+            setup.mock.writtenData.count, priorCount,
+            "a refused target must not reach the desk"
+        )
+        setup.heightCont.finish()
+    }
+
+    /// The reported defect: 300cm passed DeskLimits.safeCommandRange, which is an encoding
+    /// bound of 6.5 metres, and the desk drove 28cm toward it before being stopped by hand.
+    func testAThreeMetreTargetIsRefusedWithoutMovingTheDesk() async throws {
+        let setup = try await makePresetTestSetup()
+        let priorCount = setup.mock.writtenData.count
+
+        do {
+            try await setup.manager.moveToHeight(mm: 3000 - 680)
+            XCTFail("300cm must be refused")
+        } catch DeskError.targetOutOfRange {
+            // expected
+        }
+
+        XCTAssertEqual(setup.mock.writtenData.count, priorCount, "the desk must not move at all")
+        setup.heightCont.finish()
+    }
+
+    func testMoveToHeightRejectsATargetBelowTheDeskBase() async throws {
+        let setup = try await makePresetTestSetup()
+        let priorCount = setup.mock.writtenData.count
+
+        do {
+            try await setup.manager.moveToHeight(mm: -1)
+            XCTFail("a target below the desk's lowest position must be refused")
+        } catch DeskError.targetOutOfRange {
+            // expected
+        }
+
+        XCTAssertEqual(setup.mock.writtenData.count, priorCount, "the desk must not move at all")
+        setup.heightCont.finish()
+    }
+
+    func testTheStrokeBoundIsConfigurable() async throws {
+        let setup = try await makePresetTestSetup(config: AppConfig(maxStrokeMM: 300))
+
+        do {
+            try await setup.manager.moveToHeight(mm: 400)
+            XCTFail("400mm is past a 300mm stroke")
+        } catch DeskError.targetOutOfRange {
+            // expected
+        }
+        setup.heightCont.finish()
+    }
+
+    /// A preset height comes from the desk, so it is not second-guessed against a setting
+    /// the user may have left conservative.
+    func testAPresetTallerThanTheConfiguredStrokeStillRecalls() async throws {
+        let setup = try await makePresetTestSetup(config: AppConfig(maxStrokeMM: 300))
+        let priorCount = setup.mock.writtenData.count
+
+        let goToTask = Task { try await setup.manager.goToPreset(index: 2) }
+        try await Task.sleep(for: .milliseconds(150))
+        setup.heightCont.yield(makeHeightPacket(mm: 1105))
+        setup.heightCont.finish()
+        try await goToTask.value
+
+        XCTAssertGreaterThan(
+            setup.mock.writtenData.count, priorCount,
+            "preset 2 is 1105mm and must still recall"
+        )
+    }
+
+    /// targetPreset drives the preset highlight in the popover, and an arbitrary height
+    /// is not one of the presets.
+    func testMoveToHeightLeavesTargetPresetUnset() async throws {
+        let setup = try await makePresetTestSetup()
+
+        let move = Task { try await setup.manager.moveToHeight(mm: 400) }
+        try await Task.sleep(for: .milliseconds(80))
+        let during = await setup.manager.currentState
+        XCTAssertTrue(during.isMoving)
+        XCTAssertNil(during.targetPreset)
+
+        setup.heightCont.yield(makeHeightPacket(mm: 400))
+        setup.heightCont.finish()
+        try await move.value
+    }
+}
+
+// MARK: - Sit/stand toggle
+
+final class ToggleTargetTests: XCTestCase {
+
+    func testParkedAtSittingTogglesToStanding() {
+        XCTAssertEqual(toggleTarget(height: 700, sitMM: 700, standMM: 1100), 2)
+    }
+
+    func testParkedAtStandingTogglesToSitting() {
+        XCTAssertEqual(toggleTarget(height: 1100, sitMM: 700, standMM: 1100), 1)
+    }
+
+    func testNearerSittingTogglesToStanding() {
+        XCTAssertEqual(toggleTarget(height: 780, sitMM: 700, standMM: 1100), 2)
+    }
+
+    func testNearerStandingTogglesToSitting() {
+        XCTAssertEqual(toggleTarget(height: 1050, sitMM: 700, standMM: 1100), 1)
+    }
+
+    func testExactMidpointGoesToStanding() {
+        XCTAssertEqual(toggleTarget(height: 900, sitMM: 700, standMM: 1100), 2)
+    }
+
+    /// Presets saved in the other order must still alternate rather than pick one side.
+    func testStandingBelowSittingStillAlternates() {
+        XCTAssertEqual(toggleTarget(height: 1100, sitMM: 1100, standMM: 700), 2)
+        XCTAssertEqual(toggleTarget(height: 700, sitMM: 1100, standMM: 700), 1)
     }
 }

@@ -5,7 +5,10 @@ import Foundation
 
 // MARK: - Constants
 
-private let powerOnPollInterval: Duration = .milliseconds(100)
+/// How long CoreBluetooth may say nothing before the wait says so in the log.
+/// Reporting only. The wait carries on: a cold stack has taken 13.2s to answer,
+/// and Bluetooth switched off is the user's to fix whenever they get to it.
+let powerOnReportDelay: Duration = .seconds(10)
 
 // MARK: - DeskManager
 
@@ -29,13 +32,17 @@ public actor DeskManager {
     var movementTask: Task<Void, Never>?
     var presetMoveTask: Task<Void, Never>?
     var reconnectionTask: Task<Void, Never>?
-    var heartbeatTask: Task<Void, Never>?
-    var lastUserAction: ContinuousClock.Instant?
     var isUserInitiatedDisconnect: Bool = false
 
     /// Latest BLE hardware state, nil until CoreBluetooth reports one.
-    private var bleState: BLEState?
+    var bleState: BLEState?
     private var bleStateTask: Task<Void, Never>?
+    private var disconnectTask: Task<Void, Never>?
+
+    /// Callers suspended in `waitUntilPoweredOn()`, keyed so a cancelled one can
+    /// be pulled out without disturbing the others.
+    private var powerOnWaiters: [Int: CheckedContinuation<Void, Error>] = [:]
+    private var nextPowerOnWaiterID = 0
 
     // MARK: - State observation
 
@@ -99,35 +106,42 @@ public actor DeskManager {
     /// nothing while the manager is still starting up, so an attempt made during the gap
     /// fails for a reason that has nothing to do with the desk.
     ///
-    /// The wait is bounded: Bluetooth switched off is a state the user can fix at any
-    /// time, and waiting on it forever leaves a caller suspended with nothing in the log
-    /// to say why. Giving up instead lets the caller log it and lets the reconnection
-    /// loop retry later.
+    /// No deadline, deliberately. A cold CoreBluetooth stack reported `.poweredOn` 13.2s
+    /// after launch and the 10s bound that preceded this left the app sitting disconnected
+    /// with the desk in range. `.unknown` and `.resetting` are what a cold stack reports on
+    /// its way up, and `.poweredOff` is a switch the user can flip at any time; none of the
+    /// three is a reason to abandon the connect.
     ///
-    /// - Throws: `DeskError.bluetoothUnavailable` carrying the last state seen, both for
-    ///   states no wait can fix (`.unauthorized`, `.unsupported`) and on timeout. The
-    ///   payload is what separates the two.
-    ///
-    /// - Parameter timeout: Defaults to the 20 x 500ms bound this gate replaced.
-    public func waitUntilPoweredOn(timeout: Duration = .seconds(10)) async throws {
+    /// - Throws: `DeskError.bluetoothUnavailable` for `.unauthorized` and `.unsupported`,
+    ///   the two states no amount of waiting fixes, or `CancellationError`.
+    public func waitUntilPoweredOn() async throws {
         startBLEStateObserver()
-        let deadline = ContinuousClock.now.advanced(by: timeout)
-        while true {
-            switch bleState {
-            case .poweredOn:
-                return
-            case .unauthorized, .unsupported:
-                throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
-            default:
-                guard ContinuousClock.now < deadline else {
-                    let last = bleState ?? .unknown
-                    FileLog.debug("waitUntilPoweredOn: gave up, still \(last)", category: "core")
-                    throw DeskError.bluetoothUnavailable(last)
+        switch bleState {
+        case .poweredOn:
+            return
+        case .unauthorized, .unsupported:
+            throw DeskError.bluetoothUnavailable(bleState ?? .unknown)
+        default:
+            break
+        }
+
+        let reporter = startSilentStackReport()
+        defer { reporter.cancel() }
+
+        let id = nextPowerOnWaiterID
+        nextPowerOnWaiterID += 1
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                // Runs synchronously on the actor, so no state change can slip
+                // between this check and the store.
+                if Task.isCancelled {
+                    continuation.resume(throwing: CancellationError())
+                } else {
+                    powerOnWaiters[id] = continuation
                 }
-                // Real sleep, not `clock`: a TestClock never advances on its own, so
-                // polling it here would hang every test that does not drive it.
-                try await Task.sleep(for: powerOnPollInterval)
             }
+        } onCancel: {
+            Task { await self.cancelPowerOnWaiter(id) }
         }
     }
 
@@ -148,10 +162,70 @@ public actor DeskManager {
 
     private func recordBLEState(_ state: BLEState) {
         bleState = state
+        switch state {
+        case .poweredOn:
+            releasePowerOnWaiters(throwing: nil)
+        case .unauthorized, .unsupported:
+            releasePowerOnWaiters(throwing: DeskError.bluetoothUnavailable(state))
+        case .unknown, .resetting, .poweredOff:
+            break
+        }
+    }
+
+    private func releasePowerOnWaiters(throwing error: Error?) {
+        let waiting = powerOnWaiters.values
+        powerOnWaiters = [:]
+        for continuation in waiting {
+            if let error {
+                continuation.resume(throwing: error)
+            } else {
+                continuation.resume()
+            }
+        }
+    }
+
+    /// Logs once if CoreBluetooth has still said nothing after `powerOnReportDelay`.
+    /// A stack that never answers leaves no other trace: the app simply waits, and
+    /// an app that waits with nothing in the log reads as an app that is broken.
+    private func startSilentStackReport() -> Task<Void, Never> {
+        let clock = self.clock
+        return Task { [weak self] in
+            guard (try? await clock.sleep(for: powerOnReportDelay)) != nil else { return }
+            await self?.reportSilentStack()
+        }
+    }
+
+    private func reportSilentStack() {
+        FileLog.debug(
+            "waitUntilPoweredOn: no state from CoreBluetooth after \(powerOnReportDelay), last state \(bleState.map(String.init(describing:)) ?? "none"); still waiting. If it never arrives, check that this build is allowed Bluetooth in System Settings > Privacy and Security.",
+            category: "core"
+        )
+    }
+
+    private func cancelPowerOnWaiter(_ id: Int) {
+        powerOnWaiters.removeValue(forKey: id)?.resume(throwing: CancellationError())
     }
 
     deinit {
         bleStateTask?.cancel()
+        disconnectTask?.cancel()
+    }
+
+    // MARK: - Link drops
+
+    /// Routes peripheral link drops to `handleDisconnection()`.
+    ///
+    /// Started at the first connect and left running: the controller's stream
+    /// lives as long as the controller, and one iterator is all it can feed.
+    private func startDisconnectObserver() {
+        guard disconnectTask == nil else { return }
+        let stream = bleController.disconnections
+        disconnectTask = Task { [weak self] in
+            for await _ in stream {
+                guard let self else { return }
+                await self.handleDisconnection()
+            }
+        }
     }
 
     // MARK: - Config
@@ -191,6 +265,7 @@ public actor DeskManager {
     public func connect(peripheralId: UUID) async throws {
         FileLog.debug("connect: starting for \(peripheralId)", category: "core")
         isUserInitiatedDisconnect = false
+        startDisconnectObserver()
         updateState { $0.connectionState = .connecting }
 
         do {
@@ -205,7 +280,6 @@ public actor DeskManager {
             applyHandshakeResult(result, peripheralId: peripheralId, peripheralName: peripheralName)
             startHeightNotificationListener()
             startStatusNotificationListener()
-            startHeartbeat()
             FileLog.debug("connect: DONE -- state=connected", category: "core")
         } catch {
             FileLog.debug("connect: FAILED -- \(error)", category: "core")
@@ -216,7 +290,7 @@ public actor DeskManager {
 
     /// Disconnects from the desk and resets state.
     ///
-    /// Cancels the height notification listener, heartbeat, and any pending reconnection.
+    /// Cancels the height notification listener and any pending reconnection.
     /// Preset labels from config are preserved.
     public func disconnect() async {
         isUserInitiatedDisconnect = true
@@ -251,10 +325,22 @@ public actor DeskManager {
         heightNotificationTask = nil
         statusNotificationTask?.cancel()
         statusNotificationTask = nil
-        heartbeatTask?.cancel()
-        heartbeatTask = nil
         reconnectionTask?.cancel()
         reconnectionTask = nil
+        cancelMoveTasks()
+    }
+
+    /// Cancels any in-flight move loop, without awaiting it to drain.
+    ///
+    /// Every path that ends a connection goes through here. A loop left running
+    /// writes into a dead link, sees the height stop changing, and its stall
+    /// watchdog reports a desk that needs a manual reference - blaming the desk
+    /// for a connection that went away.
+    func cancelMoveTasks() {
+        movementTask?.cancel()
+        movementTask = nil
+        presetMoveTask?.cancel()
+        presetMoveTask = nil
     }
 
     // MARK: - Movement (implementation in DeskManager+Movement.swift)
@@ -298,6 +384,14 @@ public actor DeskManager {
     /// - Throws: `DeskError.notConnected`, `DeskError.presetNotSet`, or `DeskError.targetOutOfRange`.
     public func goToPreset(index: Int) async throws {
         try await executeGoToPreset(index: index)
+    }
+
+    /// Moves the desk to an absolute raw height.
+    ///
+    /// - Parameter mm: Target in raw desk millimetres, offset already removed.
+    /// - Throws: `DeskError.notConnected` or `DeskError.targetOutOfRange`.
+    public func moveToHeight(mm: Int) async throws {
+        try await executeMoveToHeight(mm)
     }
 
     /// Saves the current desk height to a preset slot.

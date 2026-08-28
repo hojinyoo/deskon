@@ -77,4 +77,24 @@ final class HeightConverterTests: XCTestCase {
     func testToInches_zeroIsZero() {
         XCTAssertEqual(HeightConverter.toInches(0), 0.0)
     }
+
+    // MARK: - millimeters(from:unit:) - typed input
+
+    func testMillimetres_roundTripsATypedHeight() {
+        XCTAssertEqual(HeightConverter.millimeters(from: 110.5, unit: .cm), 1105)
+        XCTAssertEqual(HeightConverter.millimeters(from: 43.5, unit: .inch), 1105)
+    }
+
+    /// `Double(_: String)` accepts "inf" and "nan", so argument-parser hands them straight
+    /// through, and `Int(_: Double)` traps on either. `deskctl goto inf` crashed here.
+    func testMillimetres_refusesNonFiniteInput() {
+        XCTAssertNil(HeightConverter.millimeters(from: .infinity, unit: .cm))
+        XCTAssertNil(HeightConverter.millimeters(from: -.infinity, unit: .cm))
+        XCTAssertNil(HeightConverter.millimeters(from: .nan, unit: .cm))
+    }
+
+    /// Same trap, other end: `Int(1e21)` is past Int.max.
+    func testMillimetres_refusesInputPastInt() {
+        XCTAssertNil(HeightConverter.millimeters(from: 1e20, unit: .cm))
+    }
 }
