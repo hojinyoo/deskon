@@ -95,7 +95,7 @@ Both debug **and release** builds write an event log to:
 tail -f ~/Library/Logs/LinakControl/debug.log
 ```
 
-Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch) and is capped at **1 MB rolling** to bound growth — so an intermittent fault can be captured after it happens, as long as you grab the log before it rolls over. Each launch appends a `=== LinakControl launch ===` banner so you can find the session boundary.
+Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch). At **1 MB** it is rotated: the full file becomes `debug.log.1` and logging continues in a fresh `debug.log` — so an intermittent fault can be captured after it happens, and if it is not in `debug.log`, look in `debug.log.1`. Only one rotated file is kept; the next rotation replaces it. Each launch appends a `=== LinakControl launch ===` banner so you can find the session boundary.
 
 This is what makes it possible to diagnose intermittent hardware faults (e.g. the desk showing **E16** and needing a manual re-reference): reproduce the fault, then send the relevant slice of `debug.log`. The `[status]` lines are the raw bytes the desk reports on its status characteristic — the raw material for pinning down exactly what the desk signalled.
 
@@ -167,7 +167,7 @@ If steps 1–5 look fine but the symptom persists, watch the log while you repro
 tail -f ~/Library/Logs/LinakControl/debug.log
 ```
 
-Reproduce the issue and copy the last 50–100 lines for the bug report. Grab it soon after the fault — the log is a 1 MB rolling window, so heavy activity afterwards can push the event out.
+Reproduce the issue and copy the last 50–100 lines for the bug report. Grab it soon after the fault — heavy activity afterwards rotates the event into `debug.log.1`, and a second rotation discards it altogether. If the fault is not in `debug.log`, check `debug.log.1` before giving up.
 
 ## Getting help
 

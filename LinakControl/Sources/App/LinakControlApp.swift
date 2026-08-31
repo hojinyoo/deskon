@@ -23,7 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Do not reset the log at launch — it must persist across app restarts
         // so an intermittent desk fault (E16) can be captured after the fact.
-        // The banner below marks each new session; the 1 MB rolling cap bounds growth.
+        // The banner below marks each new session; rotation at 1 MB into
+        // debug.log.1 bounds growth without losing the history.
         FileLog.debug("=== LinakControl launch ===", category: "app")
 
         let bleController = BLEController()
