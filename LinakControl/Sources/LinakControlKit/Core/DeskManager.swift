@@ -556,6 +556,34 @@ extension DeskManager {
         }
     }
 
+    /// How long to keep listening for a desk-pushed fault code after a timing
+    /// stall raised `needsReference` without one (issue #19).
+    static let faultCodeGraceWindow: Duration = .milliseconds(500)
+
+    /// Waits briefly for the desk to report *why* it stopped, then returns
+    /// whatever code is known.
+    ///
+    /// The 2 s stall watchdog regularly beats the control box to the punch: both
+    /// stalls observed on hardware logged `faultCode: none`, yet the desk needed
+    /// a manual re-reference afterwards — so the one thing that would have
+    /// explained the failure was never captured. `standDown()` cancels
+    /// `statusNotificationTask` and drops the link, after which a late E16 or
+    /// Initialise push is lost for good, so the wait has to happen before it.
+    ///
+    /// Returns immediately when the desk pushed a fault first — that path,
+    /// where `handleModuleFault` has already set the code, is unaffected.
+    ///
+    /// Writes nothing: by this point the movement loop has stopped and sent stop
+    /// twice, so the window does not meaningfully delay freeing the desk for the
+    /// manual initialisation `standDown()` exists to allow.
+    ///
+    /// - Returns: the fault code, or nil if none arrived within `window`.
+    func awaitFaultCode(within window: Duration = faultCodeGraceWindow) async -> UInt8? {
+        if let code = state.faultCode { return code }
+        try? await clock.sleep(for: window)
+        return state.faultCode
+    }
+
     /// Processes a single height notification packet.
     ///
     /// Speed values close to zero (abs < 5) are treated as stationary to avoid

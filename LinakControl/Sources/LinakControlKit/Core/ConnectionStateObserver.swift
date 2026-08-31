@@ -53,8 +53,14 @@ private func observeStateStream(
         // .connected → .disconnected transition is user-initiated, so it does
         // not fire a "Disconnected" notification.
         if state.needsReference, !previousNeedsReference {
-            FileLog.debug("posting needs-reference notification (faultCode: \(state.faultCode.map { String(format: "0x%02x", $0) } ?? "none"))", category: "core")
-            poster.postNeedsReference(body: DeskProtocol.faultSummary(code: state.faultCode))
+            // A timing stall reaches this point with no code — the watchdog is
+            // often quicker than the control box. Give the desk a moment to say
+            // why before standing down, because standDown() cancels the status
+            // listener and a late E16 / Initialise push is then lost for good
+            // (issue #19). Returns instantly when the desk pushed a fault first.
+            let code = await manager.awaitFaultCode()
+            FileLog.debug("posting needs-reference notification (faultCode: \(code.map { String(format: "0x%02x", $0) } ?? "none"))", category: "core")
+            poster.postNeedsReference(body: DeskProtocol.faultSummary(code: code))
             await manager.standDown()
         }
         previousNeedsReference = state.needsReference

@@ -54,6 +54,11 @@ All DPG queries failed because: (a) commands were 2 bytes instead of required 3 
 ## Heartbeat disrupts movement -- Status: superseded by the heartbeat removal below
 Heartbeat [0x01 0x80] writes to same characteristic (0x0031) as moveTo targets. Desk interpreted heartbeat as target position ~33m, causing erratic movement. Fix at the time: suppress heartbeat when state.isMoving is true.
 
+<!-- 2026-08-31 -->
+## Stall watchdog outran the control box -> faultCode: none -- Status: resolved (issue #19)
+Both real hardware stalls on 2026-08-31 (13:07 manual, 14:28 preset recall) logged `faultCode: none`, yet the desk needed a manual re-reference afterwards -- so the recurring "desk refuses to move" problem had no cause attached to it. Cause: `ConnectionStateObserver` posted the notification from the SNAPSHOT that carried the `needsReference` rising edge (code still nil), then called `standDown()` 1ms later, which `cancelConnectionTasks()` -> cancels `statusNotificationTask`. Any E16/Initialise pulse arriving after that was lost for good. The 2s timing watchdog is simply faster than this control box; the fast path (`handleModuleFault` sets needsReference+faultCode together) was never affected. Fix: `DeskManager.awaitFaultCode(within:)` -- returns immediately if a code is already known, else sleeps `faultCodeGraceWindow` (500ms) on the INJECTED clock and re-reads state; observer posts with that result. Writes nothing (movement already stopped + stop sent twice), so it does not delay freeing the desk. NOTE for tests: the window runs on the injected clock, so any TestClock-driven test of the stall->notification path must now advance past it -- `NotificationServiceTests.testMovementStallPostsNeedsReferenceNotification` needed exactly that. The observer registers its sleep at a point the test cannot observe, so advance repeatedly until the notification lands rather than once.
+
+
 ## Height validation rejects real values -- Status: resolved
 validHeightRange was 500-1500mm (absolute), but height characteristic reports raw values (0-650mm). All real desk heights were rejected. Fix: widen to 0-7000mm for raw values.
 
