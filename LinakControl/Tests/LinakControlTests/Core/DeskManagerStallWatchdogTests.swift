@@ -131,6 +131,44 @@ final class DeskManagerStallWatchdogTests: XCTestCase {
         try await setup.manager.stop()
     }
 
+    /// Issue #8: an auto move targets the physical end-stop by design, so a
+    /// *completed* auto move looks exactly like a stall — the desk arrives and
+    /// stops sending height notifications. Arrival must not be reported as a
+    /// fault, because `needsReference` now also stands the connection down.
+    func testAutoMoveArrivalDoesNotSetNeedsReference() async throws {
+        let setup = try await makeStallTestSetup()
+
+        try await setup.manager.moveUp(mode: .auto)
+        // Let the loop write once and park at its clock.sleep waiter.
+        try await Task.sleep(for: .milliseconds(50))
+
+        // The desk climbs toward its end-stop, well inside the 2s window.
+        var height = 730
+        for _ in 0..<4 {
+            height += 5
+            setup.heightCont.yield(makeHeightPacket(mm: height, speedMMS: 20))
+            await waitFor { await setup.manager.currentState.heightMM == height }
+            setup.clock.advance(by: .milliseconds(500))
+            try await Task.sleep(for: .milliseconds(30))
+        }
+
+        // Then it arrives and goes quiet, as a desk at its end-stop does.
+        setup.clock.advance(by: .milliseconds(2100))
+        await waitFor { stopCount(setup.mock) >= 2 }
+
+        let state = await setup.manager.currentState
+        XCTAssertFalse(
+            state.needsReference,
+            "Reaching the auto target / end-stop is not a fault"
+        )
+        XCTAssertNil(state.faultCode, "Arrival carries no fault code")
+        XCTAssertFalse(state.isMoving, "Arrival must clear isMoving")
+        XCTAssertGreaterThanOrEqual(
+            stopCount(setup.mock), 2,
+            "Arrival must still stop the desk and end the write loop"
+        )
+    }
+
     func testPresetRecallStallSetsNeedsReference() async throws {
         let setup = try await makeStallTestSetup()
 

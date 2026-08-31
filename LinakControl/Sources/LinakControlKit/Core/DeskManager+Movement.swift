@@ -28,6 +28,11 @@ struct StallTracker {
     private var lastProgressAt: ContinuousClock.Instant
     private let timeout: Duration
 
+    /// True once the height has changed at least once since the tracker was
+    /// created — i.e. the desk actually moved under this command. Distinguishes
+    /// "arrived and went quiet" from "never budged" (a blocked module, E16).
+    private(set) var hasProgressed = false
+
     init(height: Int?, now: ContinuousClock.Instant, timeout: Duration = stallTimeout) {
         self.lastHeight = height
         self.lastProgressAt = now
@@ -40,6 +45,7 @@ struct StallTracker {
         if height != lastHeight {
             lastHeight = height
             lastProgressAt = now
+            hasProgressed = true
             return false
         }
         return lastProgressAt.duration(to: now) >= timeout
@@ -160,8 +166,9 @@ extension DeskManager {
 
     /// Actor-isolated movement loop: writes `command` to `characteristic` every
     /// 100ms while observing desk height. If the height does not change for
-    /// `stallTimeout` the desk is treated as not responding — the loop stops
-    /// hammering it (per issue #1) and raises `needsReference`.
+    /// `stallTimeout` the desk is treated as no longer moving — the loop stops
+    /// hammering it (per issue #1) and, if the desk never moved at all, raises
+    /// `needsReference`.
     ///
     /// Mirrors `runPresetLoop` (DeskManager+Presets.swift), which already
     /// terminates a repeating move loop on a height/time condition.
@@ -176,28 +183,49 @@ extension DeskManager {
             try? await clock.sleep(for: movementInterval)
 
             if tracker.isStalled(height: state.heightMM, now: clock.now()) {
-                await handleStall()
+                await handleStall(hasProgressed: tracker.hasProgressed)
                 break
             }
         }
     }
 
-    /// Stops the desk and flags a stall after the height failed to change while
-    /// moving. This is the timing backstop — the desk may be at a physical
-    /// end-stop, or the control module may be blocked without pushing a status
-    /// fault. When the desk does push a fault code, `handleModuleFault` sets a
-    /// precise `faultCode`; here it is left nil (generic stall).
-    private func handleStall() async {
-        FileLog.debug(
-            "movement stall: height unchanged for \(stallTimeout) while moving — stopping; desk may need a reset",
-            category: "movement"
-        )
+    /// Stops the desk after the height failed to change while moving, and flags
+    /// a stall only when the desk never moved in the first place.
+    ///
+    /// Two very different situations reach this point, and only the height
+    /// history tells them apart (issue #8):
+    ///
+    /// - `hasProgressed == false` — the module never budged under a commanded
+    ///   move. That is a genuine fault (a blocked module, E16) and warrants
+    ///   `needsReference`, which stands the connection down for a manual reset.
+    /// - `hasProgressed == true` — the desk moved and then went quiet, which is
+    ///   the *normal* end of an auto move: `DeskLimits.autoUpTargetTenths` is
+    ///   the physical end-stop by design, so arrival always looks like silence.
+    ///   Stop writing, but claim no fault.
+    ///
+    /// Stopping the writes is unconditional either way. When the desk does push
+    /// a fault code, `handleModuleFault` sets a precise `faultCode` on its own
+    /// channel; here it is left nil (generic stall).
+    private func handleStall(hasProgressed: Bool) async {
+        if hasProgressed {
+            FileLog.debug(
+                "movement ended: height unchanged for \(stallTimeout) after moving — target or end-stop reached; stopping",
+                category: "movement"
+            )
+        } else {
+            FileLog.debug(
+                "movement stall: height never changed for \(stallTimeout) while moving — stopping; desk may need a reset",
+                category: "movement"
+            )
+        }
         try? await writeStopCommand()
         updateState {
             $0.isMoving = false
             $0.moveDirection = nil
             $0.speedMMS = 0
-            $0.needsReference = true
+            if !hasProgressed {
+                $0.needsReference = true
+            }
         }
     }
 

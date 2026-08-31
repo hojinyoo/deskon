@@ -73,7 +73,7 @@ The message is specific to what the control box reports:
 - **Initialise / re-initialisation required.** The desk lost its position reference and asks to be re-initialised. Hold the **down** button until the desk reaches its lowest position and resets (follow your LINAK control box's initialisation procedure). Movement from the app then works normally — the warning clears on your next move.
 - **E16 — "needs a reset on the control box".** The control box read the Bluetooth move commands as an illegal key combination and stopped. This is not a hardware fault. Re-reference the desk manually as above. 
 - **E26 — "possible hardware fault in a desk leg (check the cables)".** The control box reports channel 4 (a leg motor) as missing. If this recurs, check the motor cable connections to the legs; a persistent E26 points at a cable or motor, not the app.
-- The app also shows a generic "stopped responding" warning if you hold a direction into the desk's **physical end-stop** (the height simply stops changing). That is harmless — just release the button.
+- Reaching the desk's **physical end-stop** does *not* raise this warning. The app only claims a fault when the desk never moved at all under a move command; a desk that moved and then stopped is treated as having arrived. (An **auto** move targets the end-stop by design, so this is the normal way one finishes.)
 
 The exact bytes the desk reports are recorded in the log under `[status]` (see [Where to look for logs](#where-to-look-for-logs)); include them if you report a movement fault.
 
