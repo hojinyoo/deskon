@@ -131,25 +131,47 @@ A few details that are not obvious from `--help`:
 
 **Plain text (default).** Status, height, and preset commands print human-readable lines. Error messages are also plain text and go to **stderr**, never stdout — so piping stdout into another program stays clean.
 
-**`--json` (where available).** `deskctl status` and `deskctl height` accept `--json`. The schema is stable; field names are snake_case.
+**`--json` (where available).** `deskctl status` and `deskctl height` accept `--json`. Field names are snake_case. The schema is **additive**: fields get added as the app grows (`needs_reference` and `fault_code` both arrived after the first release), so parse by key and ignore what you do not recognise rather than assuming a fixed set.
 
 `deskctl status --json` shape:
 
 ```json
 {
   "connected": true,
-  "desk_name": "LINAK-DPG1C-1A2B",
-  "height_mm": 724,
-  "height_display": "72.4",
+  "desk_name": "DESK 0726",
+  "height_mm": 1097,
+  "height_display": "109.7 cm",
   "unit": "cm",
   "presets": [
-    {"index": 1, "height_mm": 630, "label": "Sitting"},
-    {"index": 2, "height_mm": 1100, "label": "Standing"},
-    {"index": 3, "height_mm": null, "label": null},
-    {"index": 4, "height_mm": null, "label": null}
+    {"index": 1, "height_mm": 709},
+    {"index": 2, "height_mm": 1097, "label": "Standing"},
+    {"index": 3, "height_mm": 1146},
+    {"index": 4}
   ],
-  "active_preset": 2
+  "active_preset": 2,
+  "needs_reference": false
 }
+```
+
+Two things to know before you parse it:
+
+- **Optional fields are omitted, not null.** An unset preset is `{"index": 4}` — no `height_mm`, no `label`. Same for `fault_code` below. Use `jq`'s `//` default or check for presence; do not expect `null`.
+- **`height_display` includes the unit** (`"109.7 cm"`, `"43.2 in"`). Use `height_mm` for arithmetic — it is always millimetres regardless of the `unit` setting, and already includes `desk_offset_mm`.
+
+**Fault fields.** Two fields report whether the desk is asking to be re-referenced:
+
+| Field | Type | Always present | Meaning |
+|---|---|---|---|
+| `needs_reference` | bool | yes | A move stalled or the desk reported a fault. The app has disconnected so you can operate the control box. |
+| `fault_code` | int | **no** — only when the desk pushed one | Raw code behind `needs_reference`, e.g. `30` (`0x1e`) for **E16**, `23` (`0x17`) for **E26**. |
+
+When `needs_reference` is `true`, the desk needs a manual re-reference on the control box — see [Troubleshooting](troubleshooting.md). A script that drives the desk unattended should check it before issuing a move, since movement commands will not take effect until the desk is re-referenced:
+
+```bash
+if [ "$(deskctl status --json | jq '.needs_reference')" = "true" ]; then
+  echo "Desk needs a manual reset — code: $(deskctl status --json | jq '.fault_code // "none reported"')" >&2
+  exit 1
+fi
 ```
 
 `deskctl height --json` shape:
