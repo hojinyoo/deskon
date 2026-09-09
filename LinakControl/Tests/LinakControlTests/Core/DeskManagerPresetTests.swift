@@ -98,8 +98,10 @@ final class DeskManagerPresetHappyPathTests: XCTestCase {
 
         let goToTask = Task { try await setup.manager.goToPreset(index: 2) }
 
-        // Check state during movement (before arrival)
-        try await Task.sleep(for: .milliseconds(50))
+        // Check state during movement (before arrival). Wait for the move to
+        // have actually started rather than betting 50ms on it — this assertion
+        // was observed failing once under full-suite load (issue #12).
+        await waitFor { await setup.manager.currentState.isMoving }
         let movingState = await setup.manager.currentState
         XCTAssertEqual(movingState.targetPreset, 2)
         XCTAssertTrue(movingState.isMoving)
