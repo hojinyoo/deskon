@@ -361,8 +361,9 @@ final class DeskManagerPresetTimeoutTests: XCTestCase {
         // Start moving to preset 2 (1105mm) — never emit arrival height.
         let goToTask = Task { try? await setup.manager.goToPreset(index: 2) }
 
-        // Allow the control loop to start.
-        try await Task.sleep(for: .milliseconds(50))
+        // Wait for the control loop to start rather than betting 50ms on it,
+        // the same conversion #12 made to the sibling test above.
+        await waitFor { await setup.manager.currentState.isMoving }
 
         let midState = await setup.manager.currentState
         XCTAssertTrue(midState.isMoving, "isMoving must be true during preset move")
