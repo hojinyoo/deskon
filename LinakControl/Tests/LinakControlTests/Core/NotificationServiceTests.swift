@@ -163,7 +163,17 @@ final class ConnectionStateObserverStallTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(50))
         clock.advance(by: .milliseconds(2100))
         await waitFor { await manager.currentState.needsReference }
-        try await Task.sleep(for: .milliseconds(50))
+
+        // Since #19 the observer holds a short grace window before notifying,
+        // so a fault code the desk is slow to push is still captured. The window
+        // runs on the injected clock, so the test has to let it elapse. The
+        // observer registers its sleep at a moment the test cannot observe,
+        // hence advancing until the notification lands rather than once.
+        await waitFor {
+            if poster.needsReferenceCount >= 1 { return true }
+            clock.advance(by: .milliseconds(600))
+            return poster.needsReferenceCount >= 1
+        }
 
         XCTAssertEqual(
             poster.needsReferenceCount, 1,

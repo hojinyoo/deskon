@@ -8,11 +8,13 @@ import Foundation
 /// Appends timestamped lines to ~/Library/Logs/LinakControl/debug.log.
 ///
 /// All writes are serialised on a dedicated queue. The log file is created
-/// automatically on first write and truncated at 1 MB (rolling) to prevent
-/// unbounded growth. ``debug(_:category:)`` is active in release builds so
-/// installed apps capture diagnostics; ``trace(_:category:)`` stays DEBUG-only
-/// for high-frequency output. The log persists across app restarts — it is not
-/// reset at launch — so an intermittent fault can be captured after the fact.
+/// automatically on first write. At 1 MB it is **rotated**: the full file
+/// becomes `debug.log.1` (replacing any previous one) and logging continues in
+/// a fresh `debug.log`, so between 1 MB and 2 MB of history always survives.
+/// ``debug(_:category:)`` is active in release builds so installed apps capture
+/// diagnostics; ``trace(_:category:)`` stays DEBUG-only for high-frequency
+/// output. The log persists across app restarts — it is not reset at launch —
+/// so an intermittent fault can be captured after the fact.
 public enum FileLog {
 
     private static let queue = DispatchQueue(label: "com.linakcontrol.filelog")
@@ -53,8 +55,9 @@ public enum FileLog {
     /// Write a single event-level log line. Active in **all** build
     /// configurations (release included) so diagnostics — such as raw desk
     /// status packets around an E16 fault — are captured on installed builds.
-    /// The 1 MB rolling cap keeps growth bounded, so keep this to meaningful
-    /// events; use ``trace(_:category:)`` for high-frequency per-tick output.
+    /// Rotation keeps growth bounded, so keep this to meaningful events; use
+    /// ``trace(_:category:)`` for high-frequency per-tick output, which would
+    /// otherwise push the events worth keeping into `debug.log.1` and out.
     public static func debug(_ message: @autoclosure () -> String, category: String = "general") {
         append(message(), category: category)
     }
@@ -67,34 +70,46 @@ public enum FileLog {
         #endif
     }
 
-    /// Serialises and appends one line to the log file, applying the rolling cap.
+    /// Serialises and appends one line to the log file, rotating at the cap.
     private static func append(_ text: String, category: String) {
         let ts = dateFormatter.string(from: Date())
         let line = "[\(ts)] [\(category)] \(text)\n"
 
         queue.async {
             guard let url = logURL else { return }
-            let handle = openHandleIfNeeded(url: url)
-            guard let handle else { return }
-            let size = handle.seekToEndOfFile()
-            if size > maxBytes {
-                handle.truncateFile(atOffset: 0)
-                handle.seek(toFileOffset: 0)
+            guard var handle = openHandleIfNeeded(url: url) else { return }
+            if handle.seekToEndOfFile() > maxBytes {
+                guard let rotated = rotate(url: url) else { return }
+                handle = rotated
             }
             handle.write(Data(line.utf8))
         }
     }
 
-    /// Truncates the log file. Call at app launch for a clean session.
-    public static func reset() {
-        #if DEBUG
-        queue.async {
-            guard let url = logURL else { return }
-            fileHandle?.closeFile()
-            fileHandle = nil
-            try? Data().write(to: url, options: .atomic)
-        }
-        #endif
+    /// Closes the current handle, rotates the file, and opens a fresh one.
+    ///
+    /// Must be called on `queue`, which serialises it against every write.
+    ///
+    /// - Returns: a handle on the fresh file, or nil if it could not be opened.
+    private static func rotate(url: URL) -> FileHandle? {
+        fileHandle?.closeFile()
+        fileHandle = nil
+        rotateFile(at: url)
+        return openHandleIfNeeded(url: url)
+    }
+
+    /// Renames the log at `url` to `<url>.1`, replacing any previous rotated
+    /// file. Keeps at least one full cap's worth of history — the point of the
+    /// log is capturing an intermittent fault after it happens, which
+    /// truncating the file in place defeated.
+    ///
+    /// Split out from ``rotate(url:)`` as a plain filesystem operation with no
+    /// handle state, so it can be exercised against a temporary directory
+    /// instead of the real log.
+    static func rotateFile(at url: URL) {
+        let rolled = url.appendingPathExtension("1")
+        try? FileManager.default.removeItem(at: rolled)
+        try? FileManager.default.moveItem(at: url, to: rolled)
     }
 
     /// Opens or returns the existing persistent file handle.

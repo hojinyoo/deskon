@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/take-screenshots.sh -- regenerate documentation screenshots.
-# Runs the LinakControlUITests scheme, exports XCUITest attachments to docs/screenshots/.
+# Runs the DeskonUITests scheme, exports XCUITest attachments to docs/screenshots/.
 # Requires a real desk powered on and paired (no demo BLE mode).
 
 set -euo pipefail
@@ -21,9 +21,9 @@ for tool in xcodebuild xcodegen xcrun jq; do
 done
 
 # The test targets the installed app at $LINAK_APP_PATH (default
-# /Applications/LinakControl.app) rather than the Debug build, so TCC
+# /Applications/Deskon.app) rather than the Debug build, so TCC
 # Bluetooth permission survives across runs. Make sure it's there.
-LINAK_APP_PATH="${LINAK_APP_PATH:-/Applications/LinakControl.app}"
+LINAK_APP_PATH="${LINAK_APP_PATH:-/Applications/Deskon.app}"
 export LINAK_APP_PATH
 if [ ! -d "$LINAK_APP_PATH" ]; then
     echo "Error: $LINAK_APP_PATH not found." >&2
@@ -37,18 +37,18 @@ rm -rf "$RESULT_BUNDLE"
 echo ">>> regenerating Xcode project"
 xcodegen generate
 
-# Use a repo-local DerivedData so the LinakControl.app path is deterministic
-# (the default ~/Library/Developer/Xcode/DerivedData/LinakControl-<hash> hash
+# Use a repo-local DerivedData so the Deskon.app path is deterministic
+# (the default ~/Library/Developer/Xcode/DerivedData/Deskon-<hash> hash
 # changes whenever xcodegen rewrites the project).
 mkdir -p "$DERIVED_DATA"
 
 # Split build and run: xcodebuild test with -only-testing tends to skip
-# rebuilding the host app, so the Debug LinakControl.app can be missing
+# rebuilding the host app, so the Debug Deskon.app can be missing
 # when the runner's preflight goes looking for it.
 echo ">>> building host app + UI test bundle"
 xcodebuild build-for-testing \
-    -project LinakControl.xcodeproj \
-    -scheme LinakControlApp \
+    -project Deskon.xcodeproj \
+    -scheme DeskonApp \
     -configuration Debug \
     -derivedDataPath "$DERIVED_DATA" \
     -destination 'platform=macOS' \
@@ -56,22 +56,22 @@ xcodebuild build-for-testing \
 
 # xcodebuild's pre-test validation reads CFBundleIdentifier from
 # $BUILT_PRODUCTS_DIR/$TEST_TARGET_NAME (no .app extension). Our product is
-# LinakControl.app, so the lookup misses unless we point a same-named symlink
+# Deskon.app, so the lookup misses unless we point a same-named symlink
 # at the bundle. <path>/Contents/Info.plist then resolves through the symlink
 # and the validator is happy.
 DEBUG_DIR="$DERIVED_DATA/Build/Products/Debug"
-if [ -d "$DEBUG_DIR/LinakControl.app" ]; then
-    ln -sfn LinakControl.app "$DEBUG_DIR/LinakControl"
+if [ -d "$DEBUG_DIR/Deskon.app" ]; then
+    ln -sfn Deskon.app "$DEBUG_DIR/Deskon"
 else
-    echo "Error: $DEBUG_DIR/LinakControl.app not built — aborting." >&2
+    echo "Error: $DEBUG_DIR/Deskon.app not built — aborting." >&2
     exit 1
 fi
 
 echo ">>> running UI test target"
 xcodebuild test-without-building \
-    -project LinakControl.xcodeproj \
-    -scheme LinakControlApp \
-    -only-testing:LinakControlUITests \
+    -project Deskon.xcodeproj \
+    -scheme DeskonApp \
+    -only-testing:DeskonUITests \
     -resultBundlePath "$RESULT_BUNDLE" \
     -derivedDataPath "$DERIVED_DATA" \
     -destination 'platform=macOS' \

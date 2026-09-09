@@ -1,12 +1,12 @@
-# Makefile — linak-control
-# Builds, tests, and installs LinakControl (menu bar app) and deskctl (CLI).
+# Makefile — deskon
+# Builds, tests, and installs Deskon (menu bar app) and deskctl (CLI).
 # Targets operate on the Swift Package at LinakControl/.
 
 SWIFT_PKG_DIR := LinakControl
 BUILD_DIR     := $(SWIFT_PKG_DIR)/.build
 RELEASE_DIR   := $(BUILD_DIR)/release
 
-APP_BINARY    := LinakControl
+APP_BINARY    := Deskon
 CLI_BINARY    := deskctl
 
 INSTALL_BIN   ?= /usr/local/bin
@@ -15,8 +15,8 @@ INSTALL_APP   ?= /Applications
 # Xcode project — produces a proper .app bundle required for BLE entitlements,
 # Info.plist embedding (LSUIElement, NSBluetoothAlwaysUsageDescription), and
 # SMAppService (login item) which all require a bundle identifier.
-XCODEPROJ     := LinakControl.xcodeproj
-XCODE_SCHEME  := LinakControlApp
+XCODEPROJ     := Deskon.xcodeproj
+XCODE_SCHEME  := DeskonApp
 XCODE_CONFIG  ?= Debug
 
 .PHONY: help build build-debug xcode-build xcode-build-debug app-path generate-xcodeproj test install clean lint
@@ -32,10 +32,10 @@ build: ## Build both targets in release mode (raw binaries via SPM)
 build-debug: ## Build both targets in debug mode (raw binaries via SPM)
 	cd $(SWIFT_PKG_DIR) && swift build
 
-xcode-build: generate-xcodeproj ## Build LinakControl.app bundle in release mode via Xcode
+xcode-build: generate-xcodeproj ## Build Deskon.app bundle in release mode via Xcode
 	xcodebuild -project $(XCODEPROJ) -scheme $(XCODE_SCHEME) -configuration Release build
 
-xcode-build-debug: generate-xcodeproj ## Build LinakControl.app bundle in debug mode via Xcode
+xcode-build-debug: generate-xcodeproj ## Build Deskon.app bundle in debug mode via Xcode
 	xcodebuild -project $(XCODEPROJ) -scheme $(XCODE_SCHEME) -configuration Debug build
 
 app-path: ## Print the built .app path for XCODE_CONFIG (Debug or Release)
@@ -43,7 +43,7 @@ app-path: ## Print the built .app path for XCODE_CONFIG (Debug or Release)
 	if [ -z "$$dir" ]; then printf "xcodebuild did not report BUILT_PRODUCTS_DIR for $(XCODE_CONFIG)\n" >&2; exit 1; fi; \
 	printf "%s/%s.app\n" "$$dir" "$(APP_BINARY)"
 
-generate-xcodeproj: ## Regenerate LinakControl.xcodeproj from project.yml (requires xcodegen)
+generate-xcodeproj: ## Regenerate Deskon.xcodeproj from project.yml (requires xcodegen)
 	@command -v xcodegen >/dev/null 2>&1 || (printf "xcodegen not found — run: brew install xcodegen\n" && exit 1)
 	xcodegen generate
 

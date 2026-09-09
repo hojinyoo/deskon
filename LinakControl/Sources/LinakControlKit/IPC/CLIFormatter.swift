@@ -23,7 +23,7 @@ public enum CLIFormatter {
         case .daemonNotRunning:
             let msg = json
                 ? #"{"error": 2, "message": "daemon not running"}"#
-                : "error: daemon not running — start LinakControl.app first"
+                : "error: daemon not running — start Deskon.app first"
             return (msg, .daemonNotRunning)
 
         case .connectionFailed(let detail):

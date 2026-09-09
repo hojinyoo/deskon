@@ -69,8 +69,16 @@ final class UIBLEPresetSwitchTests: XCTestCase {
         // Trigger the preset switch through the view model (fire-and-forget).
         harness.viewModel.goToPreset(index: 2)
 
-        // Allow the preflight and first heartbeat to be written before arriving.
-        try await Task.sleep(for: .milliseconds(200))
+        let expectedTarget = DeskCommand.moveTo(tenthsOfMm: UInt16(1105 * 10))
+
+        // Wait for the control loop to actually reach the desk before arriving —
+        // the assertions below need the preflight and at least one move-to
+        // heartbeat on the wire, which is a condition, not a duration.
+        await waitFor {
+            harness.mock.writtenData.dropFirst(priorWriteCount).contains {
+                $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedTarget
+            }
+        }
 
         // Emit the arrival height for preset 2 (1105mm).
         harness.heightCont.yield(makeHeightPacket(mm: 1105))
@@ -88,7 +96,6 @@ final class UIBLEPresetSwitchTests: XCTestCase {
         XCTAssertEqual(cmdWrites[1].data, DeskCommand.preflight, "Second must be preflight")
 
         // At least one heartbeat targeting 1105mm must have been sent.
-        let expectedTarget = DeskCommand.moveTo(tenthsOfMm: UInt16(1105 * 10))
         let heartbeatWrites = newWrites.filter {
             $0.characteristic == DeskUUID.targetHeartbeat && $0.data == expectedTarget
         }
@@ -127,7 +134,10 @@ final class UIBLEPresetSwitchTests: XCTestCase {
 
         // Height at 1111mm is outside the 5mm tolerance of 1105mm — no active preset yet.
         harness.heightCont.yield(makeHeightPacket(mm: 1111))
-        try await Task.sleep(for: .milliseconds(100))
+        // Wait for the height to actually be processed, then assert the preset
+        // was not claimed — otherwise the assertion can pass simply because the
+        // notification had not been handled yet.
+        await waitFor { harness.viewModel.heightMM == 1111 }
         XCTAssertNil(harness.viewModel.activePreset, "Must not set activePreset outside 5mm tolerance")
 
         // Height at 1103mm is within 5mm of 1105mm — active preset must become 2.

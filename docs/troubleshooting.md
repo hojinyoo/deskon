@@ -32,7 +32,7 @@ The app is paired but cannot reach the desk over BLE. Most common causes: the de
 
 The menu bar app must be running for any movement, status, or preset command to work. The CLI is a thin IPC client over a Unix socket at `~/Library/Application Support/LinakControl/linakcontrol.sock`.
 
-- Launch `LinakControl.app` (Spotlight → "LinakControl").
+- Launch `Deskon.app` (Spotlight → "Deskon").
 - Verify with `deskctl service status` — it should print `Daemon: running`.
 
 **`deskctl` exits with code 3 (`notConnected`)**
@@ -73,7 +73,7 @@ The message is specific to what the control box reports:
 - **Initialise / re-initialisation required.** The desk lost its position reference and asks to be re-initialised. Hold the **down** button until the desk reaches its lowest position and resets (follow your LINAK control box's initialisation procedure). Movement from the app then works normally — the warning clears on your next move.
 - **E16 — "needs a reset on the control box".** The control box read the Bluetooth move commands as an illegal key combination and stopped. This is not a hardware fault. Re-reference the desk manually as above. 
 - **E26 — "possible hardware fault in a desk leg (check the cables)".** The control box reports channel 4 (a leg motor) as missing. If this recurs, check the motor cable connections to the legs; a persistent E26 points at a cable or motor, not the app.
-- The app also shows a generic "stopped responding" warning if you hold a direction into the desk's **physical end-stop** (the height simply stops changing). That is harmless — just release the button.
+- Reaching the desk's **physical end-stop** does *not* raise this warning. The app only claims a fault when the desk never moved at all under a move command; a desk that moved and then stopped is treated as having arrived. (An **auto** move targets the end-stop by design, so this is the normal way one finishes.)
 
 The exact bytes the desk reports are recorded in the log under `[status]` (see [Where to look for logs](#where-to-look-for-logs)); include them if you report a movement fault.
 
@@ -95,7 +95,7 @@ Both debug **and release** builds write an event log to:
 tail -f ~/Library/Logs/LinakControl/debug.log
 ```
 
-Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch) and is capped at **1 MB rolling** to bound growth — so an intermittent fault can be captured after it happens, as long as you grab the log before it rolls over. Each launch appends a `=== LinakControl launch ===` banner so you can find the session boundary.
+Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch). At **1 MB** it is rotated: the full file becomes `debug.log.1` and logging continues in a fresh `debug.log` — so an intermittent fault can be captured after it happens, and if it is not in `debug.log`, look in `debug.log.1`. Only one rotated file is kept; the next rotation replaces it. Each launch appends a `=== Deskon launch ===` banner so you can find the session boundary.
 
 This is what makes it possible to diagnose intermittent hardware faults (e.g. the desk showing **E16** and needing a manual re-reference): reproduce the fault, then send the relevant slice of `debug.log`. The `[status]` lines are the raw bytes the desk reports on its status characteristic — the raw material for pinning down exactly what the desk signalled.
 
@@ -127,7 +127,7 @@ deskctl service status
 
 - `Daemon: running (connected)` — app and desk both good. Symptom is elsewhere.
 - `Daemon: running (disconnected)` — app up, BLE link down. Continue to step 3.
-- `Daemon: not running` — launch `LinakControl.app` and retry.
+- `Daemon: not running` — launch `Deskon.app` and retry.
 
 **2. Is the desk reachable?**
 
@@ -167,7 +167,7 @@ If steps 1–5 look fine but the symptom persists, watch the log while you repro
 tail -f ~/Library/Logs/LinakControl/debug.log
 ```
 
-Reproduce the issue and copy the last 50–100 lines for the bug report. Grab it soon after the fault — the log is a 1 MB rolling window, so heavy activity afterwards can push the event out.
+Reproduce the issue and copy the last 50–100 lines for the bug report. Grab it soon after the fault — heavy activity afterwards rotates the event into `debug.log.1`, and a second rotation discards it altogether. If the fault is not in `debug.log`, check `debug.log.1` before giving up.
 
 ## Getting help
 

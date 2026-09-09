@@ -1,11 +1,11 @@
 #!/bin/bash
-# install.sh -- Build LinakControl.app in release mode and install to /Applications.
+# install.sh -- Build Deskon.app in release mode and install to /Applications.
 # The app runs as a menu bar utility (no Dock icon).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="LinakControl"
+APP_NAME="Deskon"
 INSTALL_DIR="${1:-/Applications}"
 
 # Preflight: required build tools

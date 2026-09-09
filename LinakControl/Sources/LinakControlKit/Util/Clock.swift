@@ -101,6 +101,17 @@ public final class TestClock: ClockProtocol, @unchecked Sendable {
 
     // MARK: - Test Control
 
+    /// Number of sleeps currently parked, waiting for the clock to advance.
+    ///
+    /// Lets a test synchronise on *"the code under test has reached its sleep"*
+    /// instead of guessing with a wall-clock delay. Advancing before a task has
+    /// registered its sleep leaves that sleep parked at a deadline the advance
+    /// already passed, which is the classic source of a test that passes on a
+    /// quiet machine and hangs on a busy one.
+    public var pendingSleepers: Int {
+        lock.withLock { _waiters.count }
+    }
+
     /// Advances the clock by `duration` and resumes any pending sleeps whose deadline has passed.
     ///
     /// - Parameter duration: Amount of time to advance.

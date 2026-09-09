@@ -179,9 +179,14 @@ final class StatePropagationThroughputTests: XCTestCase {
         await waitFor { viewModel.heightMM == 730 }
 
         let updateCount = 100
-        // Heights alternate between two values so each emission triggers a state change.
-        let heights = (0..<updateCount).map { i in i % 2 == 0 ? 730 : 731 }
-        let finalHeight = heights.last!
+        // Heights alternate between two values so each emission triggers a state
+        // change, then end on a third the run never visits: the wait below is
+        // only a "everything flushed" check if the value it waits for cannot
+        // also be an intermediate one. Alternating to the end made it true on
+        // the second emission, and the assertion afterwards then read whichever
+        // of the two had landed by that point.
+        let finalHeight = 735
+        let heights = (0..<updateCount - 1).map { i in i % 2 == 0 ? 730 : 731 } + [finalHeight]
 
         let start = ContinuousClock.now
         for mm in heights {

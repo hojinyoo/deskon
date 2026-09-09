@@ -556,6 +556,79 @@ extension DeskManager {
         }
     }
 
+    /// How long to keep listening for a desk-pushed fault code after a timing
+    /// stall raised `needsReference` without one (issue #19).
+    static let faultCodeGraceWindow: Duration = .milliseconds(500)
+
+    /// Waits briefly for the desk to report *why* it stopped, then returns
+    /// whatever code is known.
+    ///
+    /// The 2 s stall watchdog regularly beats the control box to the punch: both
+    /// stalls observed on hardware logged `faultCode: none`, yet the desk needed
+    /// a manual re-reference afterwards — so the one thing that would have
+    /// explained the failure was never captured. `standDown()` cancels
+    /// `statusNotificationTask` and drops the link, after which a late E16 or
+    /// Initialise push is lost for good, so the wait has to happen before it.
+    ///
+    /// Returns immediately when the desk pushed a fault first — that path,
+    /// where `handleModuleFault` has already set the code, is unaffected.
+    ///
+    /// Writes nothing: by this point the movement loop has stopped and sent stop
+    /// twice, so the window does not meaningfully delay freeing the desk for the
+    /// manual initialisation `standDown()` exists to allow.
+    ///
+    /// - Returns: the fault code, or nil if none arrived within `window`.
+    func awaitFaultCode(within window: Duration = faultCodeGraceWindow) async -> UInt8? {
+        if let code = state.faultCode { return code }
+
+        // Waiting is not enough: three stalls observed on hardware pushed no
+        // status packet at all, even with the full window listening (#24). Ask
+        // the desk directly before falling back to waiting.
+        if let code = await readStatusFault() { return code }
+
+        try? await clock.sleep(for: window)
+        if let code = state.faultCode { return code }
+
+        // Last chance while the link is still up — standDown() is next.
+        return await readStatusFault()
+    }
+
+    /// Reads the status characteristic directly rather than waiting for a push,
+    /// and records any decoded fault on the state.
+    ///
+    /// `99fa0003` is Read/Notify, but the app only ever subscribed to it. When
+    /// this control box refuses a move it goes silent instead of announcing a
+    /// reason, so asking is the one question left before `standDown()` drops the
+    /// link (issue #24).
+    ///
+    /// This is a **read**, not a write. The concern behind #1 and #14 was
+    /// writing to a desk that wants to be left alone; reads already happen
+    /// freely during the handshake.
+    ///
+    /// The raw bytes are logged whatever they are — "we asked and the desk
+    /// reported nothing wrong" separates a content desk from a wedged one, and
+    /// that distinction is exactly what the log has been missing.
+    ///
+    /// - Returns: the decoded fault code, or nil if the read failed or the desk
+    ///   reported no fault.
+    private func readStatusFault() async -> UInt8? {
+        guard let data = try? await bleController.read(DeskUUID.status) else {
+            FileLog.debug("status read: no response (link down or unsupported)", category: "status")
+            return nil
+        }
+
+        let hex = data.map { String(format: "%02x", $0) }.joined(separator: " ")
+        FileLog.debug("status read: [\(hex)]", category: "status")
+
+        guard case .fault(let code) = DeskProtocol.parseDeskStatus(data) else { return nil }
+
+        FileLog.debug("status read fault: \(DeskProtocol.describeFault(code: code))", category: "status")
+        // Record it so the popover banner and `deskctl status --json` carry the
+        // specific code too, not just the notification body.
+        updateState { $0.faultCode = code }
+        return code
+    }
+
     /// Processes a single height notification packet.
     ///
     /// Speed values close to zero (abs < 5) are treated as stationary to avoid

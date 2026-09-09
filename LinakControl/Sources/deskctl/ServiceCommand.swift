@@ -101,7 +101,7 @@ struct ServiceInstallCommand: ParsableCommand {
         print("""
         To start LinakControl automatically at login:
 
-          1. Open LinakControl.app
+          1. Open Deskon.app
           2. Click the menu bar icon
           3. Open Settings
           4. Enable "Start at Login"

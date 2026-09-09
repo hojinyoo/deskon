@@ -370,7 +370,7 @@ public final class DeskViewModel: ObservableObject {
     }
 
     private func apply(_ snapshot: DeskState) {
-        FileLog.debug("apply: state=\(snapshot.connectionState) height=\(snapshot.heightMM.map(String.init) ?? "nil") moving=\(snapshot.isMoving) activePreset=\(snapshot.activePreset.map(String.init) ?? "nil")", category: "ui")
+        FileLog.trace("apply: state=\(snapshot.connectionState) height=\(snapshot.heightMM.map(String.init) ?? "nil") moving=\(snapshot.isMoving) activePreset=\(snapshot.activePreset.map(String.init) ?? "nil")", category: "ui")
         connectionState = snapshot.connectionState
         heightMM = snapshot.heightMM
 
