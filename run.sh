@@ -1,12 +1,12 @@
 #!/bin/bash
-# run.sh -- Build and launch LinakControl.app in debug mode.
+# run.sh -- Build and launch Deskon.app in debug mode.
 # Kills any running instance first so the new build takes effect.
 # Pass --clean to wipe persisted config (first-run / scanning mode).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="LinakControl"
+APP_NAME="Deskon"
 CONFIG_DIR="$HOME/Library/Application Support/LinakControl"
 CLEAN=false
 

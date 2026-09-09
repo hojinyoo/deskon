@@ -8,7 +8,7 @@ LinakControl has two front ends. They share the same paired desk and the same co
 
 **Menu bar app — two zones**
 
-After launching `LinakControl.app`, the menu bar shows two separate items (Zone 2 is created first so macOS places Zone 1 to its left):
+After launching `Deskon.app`, the menu bar shows two separate items (Zone 2 is created first so macOS places Zone 1 to its left):
 
 - **Zone 1 — desk icon.** Click to toggle the popover. The popover shows the current height, manual up/down controls, and a 2×2 preset grid. It dims when the desk is disconnected.
 - **Zone 2 — height/preset text.** Click to open a dropdown listing the four presets and their stored heights; pick one to move there.
@@ -188,7 +188,7 @@ Errors in `--json` mode print a single JSON object: `{"error": <code>, "message"
 |---|---|---|
 | `0` | `success` | Command completed. |
 | `1` | `general` | Connection failed, invalid response, or any uncategorised failure. |
-| `2` | `daemonNotRunning` | The menu bar app is not running. Start `LinakControl.app` and retry. |
+| `2` | `daemonNotRunning` | The menu bar app is not running. Start `Deskon.app` and retry. |
 | `3` | `notConnected` | The daemon is up but the desk is not currently paired/connected (e.g. desk powered off). |
 | `5` | `timeout` | The desk did not respond within the timeout. Often resolved by trying again. |
 
@@ -197,7 +197,7 @@ A robust polling script:
 ```bash
 if ! deskctl status >/dev/null 2>&1; then
     case $? in
-        2) echo "Start LinakControl.app first."; exit 1 ;;
+        2) echo "Start Deskon.app first."; exit 1 ;;
         3) echo "Desk disconnected — power on and re-pair."; exit 1 ;;
         5) echo "Desk timed out; retrying."; exec "$0" ;;
         *) echo "Unknown failure."; exit 1 ;;

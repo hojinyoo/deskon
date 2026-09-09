@@ -11,7 +11,7 @@ final class CLIFormatterPlainTests: XCTestCase {
     func testDaemonNotRunning_plainText_containsHint() {
         let (msg, code) = CLIFormatter.formatError(.daemonNotRunning, json: false)
         XCTAssertTrue(msg.contains("daemon not running"), "message should mention daemon not running, got: \(msg)")
-        XCTAssertTrue(msg.contains("LinakControl.app"), "message should hint to start the app, got: \(msg)")
+        XCTAssertTrue(msg.contains("Deskon.app"), "message should hint to start the app, got: \(msg)")
         XCTAssertEqual(code, .daemonNotRunning)
         XCTAssertEqual(code.rawValue, 2)
     }

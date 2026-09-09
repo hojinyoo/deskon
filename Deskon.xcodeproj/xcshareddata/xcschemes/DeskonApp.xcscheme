@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F0988E21082FF3DD3EC5DE60"
-               BuildableName = "LinakControl.app"
-               BlueprintName = "LinakControl"
-               ReferencedContainer = "container:LinakControl.xcodeproj">
+               BlueprintIdentifier = "62E392BAB56319D3E6500C2B"
+               BuildableName = "Deskon.app"
+               BlueprintName = "Deskon"
+               ReferencedContainer = "container:Deskon.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "98E20F689CD48B9A0D6577AA"
-               BuildableName = "LinakControlUITests.xctest"
-               BlueprintName = "LinakControlUITests"
-               ReferencedContainer = "container:LinakControl.xcodeproj">
+               BlueprintIdentifier = "6FF6EC77574B19DC1C17E31A"
+               BuildableName = "DeskonUITests.xctest"
+               BlueprintName = "DeskonUITests"
+               ReferencedContainer = "container:Deskon.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F0988E21082FF3DD3EC5DE60"
-            BuildableName = "LinakControl.app"
-            BlueprintName = "LinakControl"
-            ReferencedContainer = "container:LinakControl.xcodeproj">
+            BlueprintIdentifier = "62E392BAB56319D3E6500C2B"
+            BuildableName = "Deskon.app"
+            BlueprintName = "Deskon"
+            ReferencedContainer = "container:Deskon.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -58,10 +58,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "98E20F689CD48B9A0D6577AA"
-               BuildableName = "LinakControlUITests.xctest"
-               BlueprintName = "LinakControlUITests"
-               ReferencedContainer = "container:LinakControl.xcodeproj">
+               BlueprintIdentifier = "6FF6EC77574B19DC1C17E31A"
+               BuildableName = "DeskonUITests.xctest"
+               BlueprintName = "DeskonUITests"
+               ReferencedContainer = "container:Deskon.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -82,10 +82,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F0988E21082FF3DD3EC5DE60"
-            BuildableName = "LinakControl.app"
-            BlueprintName = "LinakControl"
-            ReferencedContainer = "container:LinakControl.xcodeproj">
+            BlueprintIdentifier = "62E392BAB56319D3E6500C2B"
+            BuildableName = "Deskon.app"
+            BlueprintName = "Deskon"
+            ReferencedContainer = "container:Deskon.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -101,10 +101,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F0988E21082FF3DD3EC5DE60"
-            BuildableName = "LinakControl.app"
-            BlueprintName = "LinakControl"
-            ReferencedContainer = "container:LinakControl.xcodeproj">
+            BlueprintIdentifier = "62E392BAB56319D3E6500C2B"
+            BuildableName = "Deskon.app"
+            BlueprintName = "Deskon"
+            ReferencedContainer = "container:Deskon.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

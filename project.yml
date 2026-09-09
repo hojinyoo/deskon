@@ -1,26 +1,21 @@
-# xcodegen project spec — generates LinakControl.xcodeproj
+# xcodegen project spec — generates Deskon.xcodeproj
 # Run: xcodegen generate from the repo root
 # Purpose: produce a .app bundle (SPM executable targets cannot produce .app bundles)
 
-name: LinakControl
+name: Deskon
 options:
   bundleIdPrefix: com.hojinyoo
   deploymentTarget:
     macOS: "13.0"
   createIntermediateGroups: true
   useBaseInternationalization: false
-  # Patch: xcodegen 2.x omits the `package` back-reference in XCSwiftPackageProductDependency
-  # for local packages. The sed command inserts it after generation so Xcode can resolve
-  # LinakControlKit from the local package.
-  postGenCommand: |
-    sed -i '' 's/isa = XCSwiftPackageProductDependency;$/isa = XCSwiftPackageProductDependency;\n\t\t\tpackage = 4EFDB7A01A97CE76F510C315 \/* XCLocalSwiftPackageReference "LinakControl" *\/;/' LinakControl.xcodeproj/project.pbxproj
 
 packages:
   LinakControlKit:
     path: LinakControl
 
 targets:
-  LinakControl:
+  Deskon:
     type: application
     platform: macOS
     deploymentTarget: "13.0"
@@ -58,22 +53,22 @@ targets:
         INFOPLIST_FILE: LinakControl/Sources/App/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
-  LinakControlUITests:
+  DeskonUITests:
     type: bundle.ui-testing
     platform: macOS
     deploymentTarget: "13.0"
     sources:
       - path: LinakControl/Sources/UITests
     dependencies:
-      - target: LinakControl
+      - target: Deskon
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hojinyoo.DeskonUITests
         MACOSX_DEPLOYMENT_TARGET: "13.0"
         SWIFT_VERSION: "5.9"
         # Intentionally no TEST_TARGET_NAME: xcodebuild's preflight tries to
-        # read it as a bare binary path (.../Debug/LinakControl) and fails
-        # because our product is LinakControl.app. The test launches the
+        # read it as a bare binary path (.../Debug/Deskon) and fails
+        # because our product is Deskon.app. The test launches the
         # installed app via XCUIApplication(url:) — no host-app lookup needed.
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
@@ -81,16 +76,16 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
-  LinakControlApp:
+  DeskonApp:
     build:
       targets:
-        LinakControl: all
-        LinakControlUITests: [test]
+        Deskon: all
+        DeskonUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - LinakControlUITests
+        - DeskonUITests
     archive:
       config: Release

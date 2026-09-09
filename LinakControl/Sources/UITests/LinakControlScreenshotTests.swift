@@ -1,5 +1,5 @@
 // LinakControlScreenshotTests.swift
-// LinakControlUITests — captures documentation screenshots via XCUITest.
+// DeskonUITests — captures documentation screenshots via XCUITest.
 //
 // Assumes ~/Library/Application Support/LinakControl/config.json has a valid
 // paired_desk_uuid and that the desk is powered on and reachable. No demo BLE
@@ -15,11 +15,11 @@ final class LinakControlScreenshotTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
 
-        // Target the installed app at LINAK_APP_PATH (default /Applications/LinakControl.app)
+        // Target the installed app at LINAK_APP_PATH (default /Applications/Deskon.app)
         // rather than the freshly built Debug binary. The installed app has stable
         // TCC permissions for Bluetooth; a fresh ad-hoc-signed Debug build does not.
         let envPath = ProcessInfo.processInfo.environment["LINAK_APP_PATH"]
-        let appPath = envPath?.isEmpty == false ? envPath! : "/Applications/LinakControl.app"
+        let appPath = envPath?.isEmpty == false ? envPath! : "/Applications/Deskon.app"
         let appURL = URL(fileURLWithPath: appPath)
         app = XCUIApplication(url: appURL)
 

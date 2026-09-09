@@ -54,13 +54,13 @@ Settings (top and scrolled):
   <img src="docs/screenshots/settings-scrolled.png" alt="Settings view scrolled" width="300">
 </p>
 
-Regenerate from a clean state with `/Applications/LinakControl.app` installed (`./install.sh`), the desk powered on and paired, and the app running:
+Regenerate from a clean state with `/Applications/Deskon.app` installed (`./install.sh`), the desk powered on and paired, and the app running:
 
 ```bash
 ./scripts/take-screenshots.sh
 ```
 
-This runs the `LinakControlUITests` XCUITest target which drives the installed app, captures full-screen shots, crops them to each UI region, and writes the PNGs into `docs/screenshots/`. Captured shots: `menubar`, `menubar-popover`, `menubar-preset-menu`, `settings`, `settings-scrolled`.
+This runs the `DeskonUITests` XCUITest target which drives the installed app, captures full-screen shots, crops them to each UI region, and writes the PNGs into `docs/screenshots/`. Captured shots: `menubar`, `menubar-popover`, `menubar-preset-menu`, `settings`, `settings-scrolled`.
 
 The first run will prompt for **Accessibility permission** for the XCUITest runner (System Settings → Privacy & Security → Accessibility). Grant it once; subsequent runs are silent.
 

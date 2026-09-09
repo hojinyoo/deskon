@@ -32,7 +32,7 @@ The app is paired but cannot reach the desk over BLE. Most common causes: the de
 
 The menu bar app must be running for any movement, status, or preset command to work. The CLI is a thin IPC client over a Unix socket at `~/Library/Application Support/LinakControl/linakcontrol.sock`.
 
-- Launch `LinakControl.app` (Spotlight → "LinakControl").
+- Launch `Deskon.app` (Spotlight → "Deskon").
 - Verify with `deskctl service status` — it should print `Daemon: running`.
 
 **`deskctl` exits with code 3 (`notConnected`)**
@@ -95,7 +95,7 @@ Both debug **and release** builds write an event log to:
 tail -f ~/Library/Logs/LinakControl/debug.log
 ```
 
-Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch). At **1 MB** it is rotated: the full file becomes `debug.log.1` and logging continues in a fresh `debug.log` — so an intermittent fault can be captured after it happens, and if it is not in `debug.log`, look in `debug.log.1`. Only one rotated file is kept; the next rotation replaces it. Each launch appends a `=== LinakControl launch ===` banner so you can find the session boundary.
+Each line is timestamped with millisecond precision and tagged with a category (e.g. `[ui]`, `[ble]`, `[status]`, `[movement]`). The log **persists across app restarts** (it is no longer truncated at launch). At **1 MB** it is rotated: the full file becomes `debug.log.1` and logging continues in a fresh `debug.log` — so an intermittent fault can be captured after it happens, and if it is not in `debug.log`, look in `debug.log.1`. Only one rotated file is kept; the next rotation replaces it. Each launch appends a `=== Deskon launch ===` banner so you can find the session boundary.
 
 This is what makes it possible to diagnose intermittent hardware faults (e.g. the desk showing **E16** and needing a manual re-reference): reproduce the fault, then send the relevant slice of `debug.log`. The `[status]` lines are the raw bytes the desk reports on its status characteristic — the raw material for pinning down exactly what the desk signalled.
 
@@ -127,7 +127,7 @@ deskctl service status
 
 - `Daemon: running (connected)` — app and desk both good. Symptom is elsewhere.
 - `Daemon: running (disconnected)` — app up, BLE link down. Continue to step 3.
-- `Daemon: not running` — launch `LinakControl.app` and retry.
+- `Daemon: not running` — launch `Deskon.app` and retry.
 
 **2. Is the desk reachable?**
 

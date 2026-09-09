@@ -4,10 +4,10 @@ claude-docker-home/
 begin-code.sh
 
 # Xcode user-specific data — project files are tracked, user state is not
-LinakControl.xcodeproj/xcuserdata/
-LinakControl.xcodeproj/project.xcworkspace/xcuserdata/
-LinakControl.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
-LinakControl.xcworkspace/xcuserdata/
+Deskon.xcodeproj/xcuserdata/
+Deskon.xcodeproj/project.xcworkspace/xcuserdata/
+Deskon.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+Deskon.xcworkspace/xcuserdata/
 # Xcode build intermediates at project root
 build/
 LinakControl/.build/

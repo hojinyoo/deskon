@@ -44,10 +44,10 @@ The script performs these steps in order:
 
 1. Preflights `xcodebuild` and `xcodegen`. Aborts with an install hint if either is missing.
 2. Stops any running `LinakControl` instance so the reinstall is clean.
-3. Regenerates `LinakControl.xcodeproj` from `project.yml` and builds a Release `.app` bundle.
+3. Regenerates `Deskon.xcodeproj` from `project.yml` and builds a Release `.app` bundle.
 4. Removes the previous install at the target directory (if any) and copies in the new `.app`.
 5. Builds `deskctl` in Release mode via SPM and installs it to `/usr/local/bin/deskctl` (prompting for `sudo` if needed).
-6. Opens `LinakControl.app` so you can confirm the menu bar icon appears.
+6. Opens `Deskon.app` so you can confirm the menu bar icon appears.
 
 To install only the CLI without an `.app` bundle, you can also use the Makefile target — it builds `deskctl` with SPM and installs to `INSTALL_BIN` (defaults to `/usr/local/bin`):
 
@@ -95,7 +95,7 @@ git pull
 ./install.sh
 ```
 
-The script stops the running app, rebuilds Release, removes the existing `LinakControl.app` from the target directory, and copies the new bundle into place. The CLI at `/usr/local/bin/deskctl` is overwritten in the same run.
+The script stops the running app, rebuilds Release, removes the existing `Deskon.app` from the target directory, and copies the new bundle into place. The CLI at `/usr/local/bin/deskctl` is overwritten in the same run.
 
 **What is preserved across updates**
 
@@ -110,7 +110,7 @@ The script stops the running app, rebuilds Release, removes the existing `LinakC
 
 ```bash
 rm -rf ~/Library/Application\ Support/LinakControl
-open /Applications/LinakControl.app
+open /Applications/Deskon.app
 ```
 
 For local development builds, `./run.sh --clean` does the same wipe and then builds and launches a debug build.

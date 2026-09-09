@@ -7,99 +7,99 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4999AB9EA6BA9A06362C3322 /* LinakControlApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BEF2034E69BFC9442A5962 /* LinakControlApp.swift */; };
-		79DDC113E0B0C1B42716A1A1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E4AAFF3D1117E8B3DEE842F /* Assets.xcassets */; };
-		B55D9B6426996B6C6CEA7E29 /* LinakControlKit in Frameworks */ = {isa = PBXBuildFile; productRef = A6A01FC53D7E8954B227568E /* LinakControlKit */; };
-		E2BC16EE7FE7551C4FFDFC36 /* LinakControlScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9F58DBA4EB7550D1944663 /* LinakControlScreenshotTests.swift */; };
+		189F07C6A5BCC4712F1AD804 /* DeskonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070BCA551CADAA64E7997A04 /* DeskonApp.swift */; };
+		4A9EC1FF055A346B6D8C855E /* LinakControlKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC4096E5808474BFEE43F19F /* LinakControlKit */; };
+		7A914BAE8A0FE185D9F2867F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F3BB9D5455D258D39929E399 /* Assets.xcassets */; };
+		DA999759408D71EC3DA12EC8 /* LinakControlScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C0F53BF0BD30590030FDDC /* LinakControlScreenshotTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		F56B3F8B59DFBE2FA2DAAD3E /* PBXContainerItemProxy */ = {
+		5EE16B50769EF32228E0A4E5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = ABE1F64B8FF6873A3DC09FE8 /* Project object */;
+			containerPortal = 32262F744C2A12F0C652E8B6 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = F0988E21082FF3DD3EC5DE60;
-			remoteInfo = LinakControl;
+			remoteGlobalIDString = 62E392BAB56319D3E6500C2B;
+			remoteInfo = Deskon;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		8E4AAFF3D1117E8B3DEE842F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9EBA3FE495B01725A47137F9 /* LinakControl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LinakControl.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		ADD823CEEC55C36D552884CC /* LinakControlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinakControlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		CB9F58DBA4EB7550D1944663 /* LinakControlScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinakControlScreenshotTests.swift; sourceTree = "<group>"; };
-		D3BEF2034E69BFC9442A5962 /* LinakControlApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinakControlApp.swift; sourceTree = "<group>"; };
-		ED13E1846412DED103D8CD8F /* LinakControl */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LinakControl; path = LinakControl; sourceTree = SOURCE_ROOT; };
+		070BCA551CADAA64E7997A04 /* DeskonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskonApp.swift; sourceTree = "<group>"; };
+		80C0F53BF0BD30590030FDDC /* LinakControlScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinakControlScreenshotTests.swift; sourceTree = "<group>"; };
+		8B6C94FF0D5FC1CECDEF3964 /* LinakControl */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LinakControl; path = LinakControl; sourceTree = SOURCE_ROOT; };
+		9A31965A964388A9F24C30C7 /* DeskonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DeskonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE599E34AC9E4799E77F8CFE /* Deskon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Deskon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3BB9D5455D258D39929E399 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		DA54F62D68D499EF08B57C26 /* Frameworks */ = {
+		9813FE095984D35FD895BF81 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B55D9B6426996B6C6CEA7E29 /* LinakControlKit in Frameworks */,
+				4A9EC1FF055A346B6D8C855E /* LinakControlKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		11C83195E5D42454814B7708 /* Packages */ = {
+		0D68654F2C08D31F1DFA6C84 = {
 			isa = PBXGroup;
 			children = (
-				ED13E1846412DED103D8CD8F /* LinakControl */,
-			);
-			name = Packages;
-			sourceTree = "<group>";
-		};
-		322EE8F9789567500FEDED8C = {
-			isa = PBXGroup;
-			children = (
-				6511CFD67193C9FD9CAA4E8D /* LinakControl */,
-				11C83195E5D42454814B7708 /* Packages */,
-				FB330C31A036D8B2971E51A7 /* Products */,
+				C60970528DCE74E3049DF1F8 /* LinakControl */,
+				6EA207CC56F04F79AD506FA7 /* Packages */,
+				CEB8CB53E18F157E72B922F1 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		6511CFD67193C9FD9CAA4E8D /* LinakControl */ = {
+		6AA91E7F780C171B78F4BEA4 /* UITests */ = {
 			isa = PBXGroup;
 			children = (
-				A44B9F5D1B343BF797D415F9 /* Sources */,
-			);
-			path = LinakControl;
-			sourceTree = "<group>";
-		};
-		7F3249459CDFCE04E762415B /* App */ = {
-			isa = PBXGroup;
-			children = (
-				8E4AAFF3D1117E8B3DEE842F /* Assets.xcassets */,
-				D3BEF2034E69BFC9442A5962 /* LinakControlApp.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		98840515125DAE2CF40A16A5 /* UITests */ = {
-			isa = PBXGroup;
-			children = (
-				CB9F58DBA4EB7550D1944663 /* LinakControlScreenshotTests.swift */,
+				80C0F53BF0BD30590030FDDC /* LinakControlScreenshotTests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
 		};
-		A44B9F5D1B343BF797D415F9 /* Sources */ = {
+		6EA207CC56F04F79AD506FA7 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				7F3249459CDFCE04E762415B /* App */,
-				98840515125DAE2CF40A16A5 /* UITests */,
+				8B6C94FF0D5FC1CECDEF3964 /* LinakControl */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		77B9C5ADE791F50E09FE3EDC /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				BFEFFA689624D5CC1BB55882 /* App */,
+				6AA91E7F780C171B78F4BEA4 /* UITests */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
 		};
-		FB330C31A036D8B2971E51A7 /* Products */ = {
+		BFEFFA689624D5CC1BB55882 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				9EBA3FE495B01725A47137F9 /* LinakControl.app */,
-				ADD823CEEC55C36D552884CC /* LinakControlUITests.xctest */,
+				F3BB9D5455D258D39929E399 /* Assets.xcassets */,
+				070BCA551CADAA64E7997A04 /* DeskonApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C60970528DCE74E3049DF1F8 /* LinakControl */ = {
+			isa = PBXGroup;
+			children = (
+				77B9C5ADE791F50E09FE3EDC /* Sources */,
+			);
+			path = LinakControl;
+			sourceTree = "<group>";
+		};
+		CEB8CB53E18F157E72B922F1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AE599E34AC9E4799E77F8CFE /* Deskon.app */,
+				9A31965A964388A9F24C30C7 /* DeskonUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -107,182 +107,148 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		98E20F689CD48B9A0D6577AA /* LinakControlUITests */ = {
+		62E392BAB56319D3E6500C2B /* Deskon */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2C3CDF85C6192CAEC0854380 /* Build configuration list for PBXNativeTarget "LinakControlUITests" */;
+			buildConfigurationList = 0271EABE0EC9B70EBA2E7429 /* Build configuration list for PBXNativeTarget "Deskon" */;
 			buildPhases = (
-				67F359A9C6A41858C6F6A6AA /* Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				EDDF2E4F379C6515569E3430 /* PBXTargetDependency */,
-			);
-			name = LinakControlUITests;
-			packageProductDependencies = (
-			);
-			productName = LinakControlUITests;
-			productReference = ADD823CEEC55C36D552884CC /* LinakControlUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
-		F0988E21082FF3DD3EC5DE60 /* LinakControl */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 0A82B42A4E40D60121936571 /* Build configuration list for PBXNativeTarget "LinakControl" */;
-			buildPhases = (
-				2D605896CFFB5BCA5CB532EB /* Sources */,
-				1E93BB2F025A6D009FE86D91 /* Resources */,
-				DA54F62D68D499EF08B57C26 /* Frameworks */,
+				0A65CDA78F78182C3C45A445 /* Sources */,
+				D593A5D6E9593C81DAB9EAD2 /* Resources */,
+				9813FE095984D35FD895BF81 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = LinakControl;
+			name = Deskon;
 			packageProductDependencies = (
-				A6A01FC53D7E8954B227568E /* LinakControlKit */,
+				CC4096E5808474BFEE43F19F /* LinakControlKit */,
 			);
-			productName = LinakControl;
-			productReference = 9EBA3FE495B01725A47137F9 /* LinakControl.app */;
+			productName = Deskon;
+			productReference = AE599E34AC9E4799E77F8CFE /* Deskon.app */;
 			productType = "com.apple.product-type.application";
+		};
+		6FF6EC77574B19DC1C17E31A /* DeskonUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 26BB1874D949D21114AF321A /* Build configuration list for PBXNativeTarget "DeskonUITests" */;
+			buildPhases = (
+				19038BE8B4F5358C0099F2B8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B80E13943D7D84BA7C62E570 /* PBXTargetDependency */,
+			);
+			name = DeskonUITests;
+			packageProductDependencies = (
+			);
+			productName = DeskonUITests;
+			productReference = 9A31965A964388A9F24C30C7 /* DeskonUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		ABE1F64B8FF6873A3DC09FE8 /* Project object */ = {
+		32262F744C2A12F0C652E8B6 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					98E20F689CD48B9A0D6577AA = {
+					62E392BAB56319D3E6500C2B = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
-						TestTargetID = F0988E21082FF3DD3EC5DE60;
 					};
-					F0988E21082FF3DD3EC5DE60 = {
+					6FF6EC77574B19DC1C17E31A = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
+						TestTargetID = 62E392BAB56319D3E6500C2B;
 					};
 				};
 			};
-			buildConfigurationList = E0DCCBECA2F407D5499A14C8 /* Build configuration list for PBXProject "LinakControl" */;
+			buildConfigurationList = 3A23B15B0E5194FB167C8613 /* Build configuration list for PBXProject "Deskon" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 			);
-			mainGroup = 322EE8F9789567500FEDED8C;
+			mainGroup = 0D68654F2C08D31F1DFA6C84;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4EFDB7A01A97CE76F510C315 /* XCLocalSwiftPackageReference "LinakControl" */,
+				9694D2153D4CE6B2D188A9EA /* XCLocalSwiftPackageReference "LinakControl" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = FB330C31A036D8B2971E51A7 /* Products */;
+			productRefGroup = CEB8CB53E18F157E72B922F1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F0988E21082FF3DD3EC5DE60 /* LinakControl */,
-				98E20F689CD48B9A0D6577AA /* LinakControlUITests */,
+				62E392BAB56319D3E6500C2B /* Deskon */,
+				6FF6EC77574B19DC1C17E31A /* DeskonUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1E93BB2F025A6D009FE86D91 /* Resources */ = {
+		D593A5D6E9593C81DAB9EAD2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				79DDC113E0B0C1B42716A1A1 /* Assets.xcassets in Resources */,
+				7A914BAE8A0FE185D9F2867F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2D605896CFFB5BCA5CB532EB /* Sources */ = {
+		0A65CDA78F78182C3C45A445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4999AB9EA6BA9A06362C3322 /* LinakControlApp.swift in Sources */,
+				189F07C6A5BCC4712F1AD804 /* DeskonApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		67F359A9C6A41858C6F6A6AA /* Sources */ = {
+		19038BE8B4F5358C0099F2B8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E2BC16EE7FE7551C4FFDFC36 /* LinakControlScreenshotTests.swift in Sources */,
+				DA999759408D71EC3DA12EC8 /* LinakControlScreenshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		EDDF2E4F379C6515569E3430 /* PBXTargetDependency */ = {
+		B80E13943D7D84BA7C62E570 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = F0988E21082FF3DD3EC5DE60 /* LinakControl */;
-			targetProxy = F56B3F8B59DFBE2FA2DAAD3E /* PBXContainerItemProxy */;
+			target = 62E392BAB56319D3E6500C2B /* Deskon */;
+			targetProxy = 5EE16B50769EF32228E0A4E5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		3D0A5710D91FB95651C3AD62 /* Release */ = {
+		30E4232DE29F9AFE0D14116F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LinakControl/Sources/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.Deskon;
 				SDKROOT = macosx;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.9;
 			};
-			name = Release;
+			name = Debug;
 		};
-		4E30A441C6E7AAFB7D9F04CF /* Debug */ = {
+		3906EB638F440538D404B6AE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -345,7 +311,63 @@
 			};
 			name = Debug;
 		};
-		69F42F41B7B68118CFEDE762 /* Debug */ = {
+		55F6DA40F9729BD2660C2D2A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		6CDCB1B3F249F67C13C410A2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -365,9 +387,9 @@
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 			};
-			name = Debug;
+			name = Release;
 		};
-		783FBF15D0A1EAEC55D123A1 /* Release */ = {
+		723DED28BBD4154C7F68F5F6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -385,33 +407,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.DeskonUITests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
-				TEST_TARGET_NAME = LinakControl;
+				TEST_TARGET_NAME = Deskon;
 			};
-			name = Release;
+			name = Debug;
 		};
-		80BBB5DFBB53071FD525F1B8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_HARDENED_RUNTIME = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = LinakControl/Sources/App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.Deskon;
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.9;
-			};
-			name = Release;
-		};
-		E26A8D840CE973C0F9CC4C11 /* Debug */ = {
+		D492237A225AEE5D7E5CF222 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -429,36 +429,36 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.DeskonUITests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
-				TEST_TARGET_NAME = LinakControl;
+				TEST_TARGET_NAME = Deskon;
 			};
-			name = Debug;
+			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0A82B42A4E40D60121936571 /* Build configuration list for PBXNativeTarget "LinakControl" */ = {
+		0271EABE0EC9B70EBA2E7429 /* Build configuration list for PBXNativeTarget "Deskon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				69F42F41B7B68118CFEDE762 /* Debug */,
-				80BBB5DFBB53071FD525F1B8 /* Release */,
+				30E4232DE29F9AFE0D14116F /* Debug */,
+				6CDCB1B3F249F67C13C410A2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		2C3CDF85C6192CAEC0854380 /* Build configuration list for PBXNativeTarget "LinakControlUITests" */ = {
+		26BB1874D949D21114AF321A /* Build configuration list for PBXNativeTarget "DeskonUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				E26A8D840CE973C0F9CC4C11 /* Debug */,
-				783FBF15D0A1EAEC55D123A1 /* Release */,
+				723DED28BBD4154C7F68F5F6 /* Debug */,
+				D492237A225AEE5D7E5CF222 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		E0DCCBECA2F407D5499A14C8 /* Build configuration list for PBXProject "LinakControl" */ = {
+		3A23B15B0E5194FB167C8613 /* Build configuration list for PBXProject "Deskon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4E30A441C6E7AAFB7D9F04CF /* Debug */,
-				3D0A5710D91FB95651C3AD62 /* Release */,
+				3906EB638F440538D404B6AE /* Debug */,
+				55F6DA40F9729BD2660C2D2A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -466,19 +466,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4EFDB7A01A97CE76F510C315 /* XCLocalSwiftPackageReference "LinakControl" */ = {
+		9694D2153D4CE6B2D188A9EA /* XCLocalSwiftPackageReference "LinakControl" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = LinakControl;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A6A01FC53D7E8954B227568E /* LinakControlKit */ = {
+		CC4096E5808474BFEE43F19F /* LinakControlKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4EFDB7A01A97CE76F510C315 /* XCLocalSwiftPackageReference "LinakControl" */;
 			productName = LinakControlKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = ABE1F64B8FF6873A3DC09FE8 /* Project object */;
+	rootObject = 32262F744C2A12F0C652E8B6 /* Project object */;
 }
