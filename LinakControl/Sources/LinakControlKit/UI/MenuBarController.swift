@@ -10,7 +10,8 @@ import SwiftUI
 /// Owns the two NSStatusItems in the macOS menu bar.
 ///
 /// Zone 1: desk icon that toggles an NSPopover containing `PopoverView`.
-/// Zone 2: preset + height text that shows an `NSMenu` with four preset items.
+/// Zone 2: preset + height text that shows an `NSMenu` with four preset items;
+/// hidden while the desk is not connected.
 ///
 /// Observes `DeskViewModel` to update both zones reactively.
 @MainActor
@@ -45,6 +46,7 @@ public final class MenuBarController: NSObject {
         setupZone2()
         setupZone1()
         startObservingViewModel()
+        refreshZones()
 
         if autoOpen {
             // Slight delay so the status item is laid out in the menu bar first.
@@ -59,9 +61,6 @@ public final class MenuBarController: NSObject {
     private func setupZone1() {
         FileLog.debug("setupZone1: creating square-length status item", category: "ui")
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = zone1Image(for: viewModel.connectionState)
-        item.button?.image?.isTemplate = true
-        item.button?.alphaValue = viewModel.connectionState == .connected ? 1.0 : 0.7
         item.button?.action = #selector(togglePopover)
         item.button?.target = self
         item.button?.setAccessibilityIdentifier("linak.menubar.zone1.icon")
@@ -95,7 +94,6 @@ public final class MenuBarController: NSObject {
     private func setupZone2() {
         FileLog.debug("setupZone2: creating variable-length status item", category: "ui")
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = zone2Title()
         item.button?.action = #selector(showPresetMenu)
         item.button?.target = self
         item.button?.setAccessibilityIdentifier("linak.menubar.zone2.text")
@@ -156,7 +154,7 @@ public final class MenuBarController: NSObject {
 
     private func updateZone2Visibility() {
         guard let item = zone2StatusItem else { return }
-        if viewModel.showZone2 {
+        if zone2Visible {
             item.length = NSStatusItem.variableLength
             item.button?.action = #selector(showPresetMenu)
             // Title is set by updateZone2Title() — no duplicate here.
@@ -169,7 +167,7 @@ public final class MenuBarController: NSObject {
     }
 
     private func updateZone2Title() {
-        guard viewModel.showZone2 else { return }
+        guard zone2Visible else { return }
         let title = zone2Title()
         guard title != lastZone2Title else { return }
         lastZone2Title = title
@@ -186,27 +184,34 @@ public final class MenuBarController: NSObject {
 
     // MARK: - Helpers
 
+    /// Zone 2 carries the live height, so it stays hidden unless the desk is connected.
+    var zone2Visible: Bool {
+        viewModel.showZone2 && viewModel.connectionState == .connected
+    }
+
+    /// "table.furniture" is available on macOS 13+ and resembles a desk. SF Symbols
+    /// has no .slash variant of it, so disconnected is the outline glyph, which the
+    /// dimmed alphaValue in `updateZone1Icon()` reinforces.
+    func zone1SymbolName(for state: ConnectionState) -> String {
+        state == .connected ? "table.furniture.fill" : "table.furniture"
+    }
+
     private func zone1Image(for state: ConnectionState) -> NSImage? {
-        // "table.furniture" is available on macOS 13+ and resembles a desk.
-        let name = "table.furniture"
-        return NSImage(systemSymbolName: name, accessibilityDescription: "Desk")
+        let description: String
+        switch state {
+        case .connected: description = "Desk connected"
+        case .connecting: description = "Connecting to desk"
+        case .scanning: description = "Scanning for desk"
+        case .disconnected: description = "Desk disconnected"
+        }
+        let image = NSImage(systemSymbolName: zone1SymbolName(for: state), accessibilityDescription: description)
+        image?.isTemplate = true
+        return image
     }
 
     private func zone2Title() -> String {
-        switch viewModel.connectionState {
-        case .connected:
-            let heightText = viewModel.heightDisplay
-            if let active = viewModel.activePreset {
-                return "\(active)  \(heightText)"
-            }
-            return heightText
-        case .connecting:
-            return "Connecting…"
-        case .scanning:
-            return "Scanning…"
-        case .disconnected:
-            return "Not Connected"
-        }
+        guard let active = viewModel.activePreset else { return viewModel.heightDisplay }
+        return "\(active)  \(viewModel.heightDisplay)"
     }
 
     private func buildPresetMenu() -> NSMenu {

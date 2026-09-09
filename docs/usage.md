@@ -10,8 +10,8 @@ LinakControl has two front ends. They share the same paired desk and the same co
 
 After launching `LinakControl.app`, the menu bar shows two separate items (Zone 2 is created first so macOS places Zone 1 to its left):
 
-- **Zone 1 — desk icon.** Click to toggle the popover. The popover shows the current height, manual up/down controls, and a 2×2 preset grid. It dims when the desk is disconnected.
-- **Zone 2 — height/preset text.** Click to open a dropdown listing the four presets and their stored heights; pick one to move there.
+- **Zone 1 — desk icon.** Click to toggle the popover. The popover shows the current height, manual up/down controls, and a 2×2 preset grid. While the desk is not connected the icon switches to a dimmed outline desk; a desk fault replaces it with an orange warning triangle.
+- **Zone 2 — height/preset text.** Click to open a dropdown listing the four presets and their stored heights; pick one to move there. It only exists while the desk is connected, so no stale height is left in the menu bar after a disconnect.
 
 **CLI — `deskctl`**
 

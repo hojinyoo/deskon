@@ -43,6 +43,7 @@ final class LinakControlScreenshotTests: XCTestCase {
         let zone2 = resolveZone2()
         XCTAssertTrue(zone1.waitForExistence(timeout: 10), "zone1 not findable")
         XCTAssertTrue(zone2.waitForExistence(timeout: 10), "zone2 not findable")
+        assertZone2Expanded(zone2)
 
         // Make sure nothing from a prior test is still on screen.
         app.typeKey(.escape, modifierFlags: [])
@@ -90,6 +91,7 @@ final class LinakControlScreenshotTests: XCTestCase {
             zone2.waitForExistence(timeout: 10),
             "zone2 status item not findable — is zone 2 visible in the menu bar?"
         )
+        assertZone2Expanded(zone2)
         let zone2Frame = zone2.frame
 
         app.typeKey(.escape, modifierFlags: [])
@@ -238,20 +240,28 @@ final class LinakControlScreenshotTests: XCTestCase {
         return byIdentifier
     }
 
+    /// Zone 2 is hidden by collapsing it to zero width, which leaves the a11y
+    /// identifier resolvable. Without this the suite clicks an invisible item
+    /// and attaches a blank screenshot instead of failing.
+    private func assertZone2Expanded(_ zone2: XCUIElement, line: UInt = #line) {
+        XCTAssertGreaterThan(
+            zone2.frame.width, 0,
+            "zone 2 is collapsed — the desk must be connected for this screenshot",
+            line: line
+        )
+    }
+
     /// Prefer the a11y identifier; if absent, fall back to scanning for a
-    /// status item whose title looks like our zone 2 text (height / state).
+    /// status item whose title looks like our zone 2 text. Zone 2 only exists
+    /// while the desk is connected, so that title always carries a height.
     private func resolveZone2() -> XCUIElement {
         let byIdentifier = app.statusItems["linak.menubar.zone2.text"]
         if byIdentifier.exists { return byIdentifier }
-        let knownPrefixes = ["Connecting", "Scanning", "Not Connected"]
         for i in 0..<app.statusItems.count {
             let item = app.statusItems.element(boundBy: i)
             let title = (item.value as? String) ?? item.label
             if title.isEmpty { continue }
             if title.unicodeScalars.contains(where: { CharacterSet.decimalDigits.contains($0) }) {
-                return item
-            }
-            if knownPrefixes.contains(where: { title.hasPrefix($0) }) {
                 return item
             }
         }
