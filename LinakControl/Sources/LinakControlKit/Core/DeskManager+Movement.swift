@@ -209,12 +209,12 @@ extension DeskManager {
     private func handleStall(hasProgressed: Bool) async {
         if hasProgressed {
             FileLog.debug(
-                "movement ended: height unchanged for \(stallTimeout) after moving — target or end-stop reached; stopping",
+                "move ended: height unchanged for \(stallTimeout) after moving; target or end-stop reached",
                 category: "movement"
             )
         } else {
             FileLog.debug(
-                "movement stall: height never changed for \(stallTimeout) while moving — stopping; desk may need a reset",
+                "move stall: height never changed for \(stallTimeout) while moving; desk may need a reset",
                 category: "movement"
             )
         }
