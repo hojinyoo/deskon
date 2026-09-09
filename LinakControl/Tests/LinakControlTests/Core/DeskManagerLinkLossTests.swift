@@ -120,7 +120,12 @@ final class DeskManagerLinkLossTests: XCTestCase {
         let state = await setup.manager.currentState
         XCTAssertEqual(state.connectionState, .disconnected, "A BLE drop must reach DeskManager")
 
-        // First backoff window is 1s.
+        // First backoff window is 1s. Wait for the loop to park on it: advancing
+        // before the sleep is registered leaves it at a deadline the advance
+        // already passed, and the reconnect never fires. Safe to key on the
+        // count here because the backoff is the only thing on this clock at
+        // this point - no move is running.
+        await waitFor { setup.clock.pendingSleepers >= 1 }
         setup.clock.advance(by: .seconds(1))
         await waitFor { setup.mock.connectCallCount > connectsBefore }
         XCTAssertGreaterThan(

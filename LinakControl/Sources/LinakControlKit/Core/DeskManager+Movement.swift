@@ -43,9 +43,12 @@ struct StallTracker {
     /// height has not changed for `timeout`. Any height change resets the window.
     mutating func isStalled(height: Int?, now: ContinuousClock.Instant) -> Bool {
         if height != lastHeight {
+            // nil -> first reading is the desk reporting a height it had not
+            // reported yet, not the desk moving. Counting it as progress lets a
+            // blocked module read as "arrived", which swallows the fault.
+            if lastHeight != nil { hasProgressed = true }
             lastHeight = height
             lastProgressAt = now
-            hasProgressed = true
             return false
         }
         return lastProgressAt.duration(to: now) >= timeout

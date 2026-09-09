@@ -193,3 +193,36 @@ final class DeskManagerStallWatchdogTests: XCTestCase {
         setup.clock.advance(by: .milliseconds(600))
     }
 }
+
+// MARK: - StallTracker
+
+/// The arrival-vs-fault discriminator behind `handleStall`, driven directly.
+/// The nil case cannot be reached through the manager without a handshake that
+/// reports no height, which is why it is exercised here.
+final class StallTrackerTests: XCTestCase {
+
+    func testFirstHeightAfterNilIsNotProgress() {
+        let now = ContinuousClock.now
+        var tracker = StallTracker(height: nil, now: now)
+
+        _ = tracker.isStalled(height: 730, now: now)
+
+        XCTAssertFalse(
+            tracker.hasProgressed,
+            "The desk reporting a height it had not reported yet is not the desk moving"
+        )
+        XCTAssertTrue(
+            tracker.isStalled(height: 730, now: now.advanced(by: stallTimeout)),
+            "A module that never budged must still stall"
+        )
+    }
+
+    func testAHeightChangeIsProgress() {
+        let now = ContinuousClock.now
+        var tracker = StallTracker(height: 730, now: now)
+
+        _ = tracker.isStalled(height: 735, now: now)
+
+        XCTAssertTrue(tracker.hasProgressed, "A height change under a commanded move is progress")
+    }
+}
