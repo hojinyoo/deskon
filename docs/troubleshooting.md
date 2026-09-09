@@ -13,7 +13,7 @@ The app launched but `LSUIElement` failed to register, or macOS suppressed the i
 - Open **System Settings → Privacy & Security → Bluetooth** and confirm `LinakControl` is listed and enabled. Without it, `CBCentralManager` never starts and the icon may be hidden until the user grants permission.
 - If it's not in the list, re-launch the app — macOS should now prompt for Bluetooth permission.
 
-**Popover is dimmed and says "Not Connected"**
+**The desk icon is dimmed and the popover says "Disconnected"**
 
 The app is paired but cannot reach the desk over BLE. Most common causes: the desk lost power, you carried the Mac out of range, or macOS dropped the connection on sleep.
 

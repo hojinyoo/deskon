@@ -197,10 +197,14 @@ public final class MenuBarController: NSObject {
     }
 
     private func zone1Image(for state: ConnectionState) -> NSImage? {
-        let image = NSImage(
-            systemSymbolName: zone1SymbolName(for: state),
-            accessibilityDescription: state == .connected ? "Desk connected" : "Desk disconnected"
-        )
+        let description: String
+        switch state {
+        case .connected: description = "Desk connected"
+        case .connecting: description = "Connecting to desk"
+        case .scanning: description = "Scanning for desk"
+        case .disconnected: description = "Desk disconnected"
+        }
+        let image = NSImage(systemSymbolName: zone1SymbolName(for: state), accessibilityDescription: description)
         image?.isTemplate = true
         return image
     }

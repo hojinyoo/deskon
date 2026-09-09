@@ -3,6 +3,7 @@
 //
 // setup() is never called: it would create real NSStatusItems in the test process.
 
+import AppKit
 import XCTest
 @testable import LinakControlKit
 
@@ -44,6 +45,16 @@ final class MenuBarControllerZoneStateTests: XCTestCase {
         for state: ConnectionState in [.disconnected, .scanning, .connecting] {
             XCTAssertNotEqual(controller.zone1SymbolName(for: state), connected,
                               "icon must differ from connected while \(state)")
+        }
+    }
+
+    /// An unresolvable symbol name would leave the status item blank, not fail loudly.
+    func testIconSymbolsResolveOnThisDeploymentTarget() {
+        let (_, controller) = makeController()
+        for state: ConnectionState in [.connected, .disconnected, .scanning, .connecting] {
+            let name = controller.zone1SymbolName(for: state)
+            XCTAssertNotNil(NSImage(systemSymbolName: name, accessibilityDescription: nil),
+                            "\(name) does not resolve")
         }
     }
 }
