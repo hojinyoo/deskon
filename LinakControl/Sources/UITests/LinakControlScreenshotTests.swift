@@ -239,19 +239,16 @@ final class LinakControlScreenshotTests: XCTestCase {
     }
 
     /// Prefer the a11y identifier; if absent, fall back to scanning for a
-    /// status item whose title looks like our zone 2 text (height / state).
+    /// status item whose title looks like our zone 2 text. Zone 2 only exists
+    /// while the desk is connected, so that title always carries a height.
     private func resolveZone2() -> XCUIElement {
         let byIdentifier = app.statusItems["linak.menubar.zone2.text"]
         if byIdentifier.exists { return byIdentifier }
-        let knownPrefixes = ["Connecting", "Scanning", "Not Connected"]
         for i in 0..<app.statusItems.count {
             let item = app.statusItems.element(boundBy: i)
             let title = (item.value as? String) ?? item.label
             if title.isEmpty { continue }
             if title.unicodeScalars.contains(where: { CharacterSet.decimalDigits.contains($0) }) {
-                return item
-            }
-            if knownPrefixes.contains(where: { title.hasPrefix($0) }) {
                 return item
             }
         }
