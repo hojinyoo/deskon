@@ -361,7 +361,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marcusbreiden.LinakControl;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.Deskon;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 			};
@@ -382,7 +382,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marcusbreiden.LinakControlUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.DeskonUITests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 				TEST_TARGET_NAME = LinakControl;
@@ -405,7 +405,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marcusbreiden.LinakControl;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.Deskon;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 			};
@@ -426,7 +426,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marcusbreiden.LinakControlUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hojinyoo.DeskonUITests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 				TEST_TARGET_NAME = LinakControl;

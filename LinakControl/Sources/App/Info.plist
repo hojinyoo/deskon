@@ -7,11 +7,13 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.marcusbreiden.LinakControl</string>
+	<string>com.hojinyoo.Deskon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleDisplayName</key>
+	<string>Deskon</string>
 	<key>CFBundleName</key>
-	<string>LinakControl</string>
+	<string>Deskon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -21,7 +23,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>LinakControl needs Bluetooth to communicate with your LINAK standing desk.</string>
+	<string>Deskon needs Bluetooth to communicate with your LINAK standing desk.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

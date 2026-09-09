@@ -4,7 +4,7 @@
 
 name: LinakControl
 options:
-  bundleIdPrefix: com.marcusbreiden
+  bundleIdPrefix: com.hojinyoo
   deploymentTarget:
     macOS: "13.0"
   createIntermediateGroups: true
@@ -32,9 +32,10 @@ targets:
       path: LinakControl/Sources/App/Info.plist
       properties:
         LSUIElement: true
-        NSBluetoothAlwaysUsageDescription: "LinakControl needs Bluetooth to communicate with your LINAK standing desk."
-        CFBundleName: LinakControl
-        CFBundleIdentifier: com.marcusbreiden.LinakControl
+        NSBluetoothAlwaysUsageDescription: "Deskon needs Bluetooth to communicate with your LINAK standing desk."
+        CFBundleName: Deskon
+        CFBundleDisplayName: Deskon
+        CFBundleIdentifier: com.hojinyoo.Deskon
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0.0"
         CFBundleExecutable: "$(EXECUTABLE_NAME)"
@@ -45,7 +46,7 @@ targets:
         product: LinakControlKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.marcusbreiden.LinakControl
+        PRODUCT_BUNDLE_IDENTIFIER: com.hojinyoo.Deskon
         MACOSX_DEPLOYMENT_TARGET: "13.0"
         SWIFT_VERSION: "5.9"
         CODE_SIGN_IDENTITY: "-"
@@ -67,7 +68,7 @@ targets:
       - target: LinakControl
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.marcusbreiden.LinakControlUITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.hojinyoo.DeskonUITests
         MACOSX_DEPLOYMENT_TARGET: "13.0"
         SWIFT_VERSION: "5.9"
         # Intentionally no TEST_TARGET_NAME: xcodebuild's preflight tries to
