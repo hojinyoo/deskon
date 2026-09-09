@@ -177,7 +177,7 @@ fi
 `deskctl height --json` shape:
 
 ```json
-{"height_mm": 724, "height_display": "72.4", "unit": "cm"}
+{"height_mm": 724, "height_display": "72.4 cm", "unit": "cm"}
 ```
 
 Errors in `--json` mode print a single JSON object: `{"error": <code>, "message": "<text>"}`. The code matches the process exit code.

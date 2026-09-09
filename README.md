@@ -118,7 +118,7 @@ Settings live at `~/Library/Application Support/LinakControl/config.json`. The f
 
 ## Debug Logging
 
-Debug builds write to `~/Library/Logs/LinakControl/debug.log` (truncated per launch, 1 MB cap). Release builds write no log file — see [docs/troubleshooting.md#where-to-look-for-logs](docs/troubleshooting.md#where-to-look-for-logs).
+Debug and release builds both write to `~/Library/Logs/LinakControl/debug.log`. It persists across restarts and is rotated to `debug.log.1` at 1 MB — see [docs/troubleshooting.md#where-to-look-for-logs](docs/troubleshooting.md#where-to-look-for-logs).
 
 ## Protocol Notes
 
