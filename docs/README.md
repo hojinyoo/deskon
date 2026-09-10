@@ -4,7 +4,7 @@ LinakControl is a macOS menu bar app and `deskctl` companion CLI for controlling
 
 ## Overview
 
-LinakControl runs on macOS 14+ and is distributed as source — there is no App Store build. The menu bar app handles pairing, live height display, manual movement, and presets. `deskctl` exposes the same surface to scripts and hotkey tools via a Unix-socket IPC, so anything you can click in the popover you can also automate from the shell.
+LinakControl runs on macOS 13+ and is distributed as source — there is no App Store build. The menu bar app handles pairing, live height display, manual movement, and presets. `deskctl` exposes the same surface to scripts and hotkey tools via a Unix-socket IPC, so anything you can click in the popover you can also automate from the shell.
 
 ## Documentation map
 

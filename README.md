@@ -1,24 +1,25 @@
 <p align="center">
-  <img src="assets/linak-control-gh-logo.png" alt="linak-control" width="600">
+  <img src="assets/linak-control-gh-logo.png" alt="Deskon" width="600">
 </p>
 
-# linak-control
+# Deskon
 
-macOS menu bar app and CLI for controlling LINAK DPG1C standing desks via Bluetooth Low Energy.
+macOS menu bar app and CLI for controlling LINAK DPG1C standing desks via Bluetooth Low Energy. A fork of [linak-control](https://github.com/MMoMM-org/linak-control) - see [Acknowledgements](#acknowledgements).
 
 ## Features
 
-- **Menu bar app** with two zones: desk icon (popover) and height/preset text (dropdown)
+- **Menu bar app** with two zones: desk icon (popover), and height/preset text (dropdown) that hides itself while the desk is disconnected
 - **Preset recall**: 4 saved height positions, switchable from the popover, menu bar dropdown, or `deskctl preset N`
 - **Manual movement**: hold-to-move up/down buttons, or auto-run mode (tap to start/stop)
 - **Live height display**: real-time height with configurable desk offset
 - **Settings**: display unit (cm/inch), movement mode, preset management, desk offset
 - **Auto-reconnect**: reconnects on disconnect with exponential backoff, plus system wake detection
-- **CLI tool** (`deskctl`): status, height, preset, and move commands via IPC
+- **CLI tool** (`deskctl`): status, height, preset, goto, sit/stand toggle, manual movement, config, and service commands over IPC
+- **Codex skill** (`skills/deskon-control/`): desk control from an agent turn, through the same CLI
 
 ## Requirements
 
-macOS 14+ with full Xcode 15+ (Swift 5.9) and [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), plus a LINAK DPG1C-compatible desk. See [docs/installation.md#prerequisites](docs/installation.md#prerequisites) for the full breakdown.
+macOS 13+ with full Xcode 15+ (Swift 5.9) and [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), plus a LINAK DPG1C-compatible desk. See [docs/installation.md#prerequisites](docs/installation.md#prerequisites) for the full breakdown.
 
 ## Quick Start
 
@@ -80,7 +81,7 @@ make help               # Show all targets
 make xcode-build-debug  # Build .app bundle (debug)
 make xcode-build        # Build .app bundle (release)
 make build              # Build CLI binary via SPM
-make test               # Run test suite (385 tests)
+make test               # Run test suite (501 tests)
 make install            # Install deskctl to /usr/local/bin
 make clean              # Remove build artifacts
 ```
@@ -102,7 +103,7 @@ LinakControl/
       Util/                 # HeightConverter, FileLog, TimedStreamBuffer, Clock
     deskctl/                # CLI tool (swift-argument-parser)
   Tests/
-    LinakControlTests/      # 385 tests across BLE, Core, UI, IPC, Integration
+    LinakControlTests/      # 501 tests across BLE, Core, UI, IPC, Integration
 ```
 
 **Key design decisions:**
@@ -115,6 +116,12 @@ LinakControl/
 ## Configuration
 
 Settings live at `~/Library/Application Support/LinakControl/config.json`. The full key reference, override mechanism (UI / `deskctl config` / hand edit), and annotated samples are in [docs/configuration.md](docs/configuration.md).
+
+## Codex Skill
+
+`skills/deskon-control/` is an installable Codex skill that drives the desk through `deskctl`, so an agent turn can send it to a preset, toggle sit/stand, or read the height. Install it into `~/.codex/skills/` with the `skill-installer` skill, or copy the directory there.
+
+It only calls the CLI, so `Deskon.app` still has to be running and connected. Saving a preset, resetting config, and stopping the service are effects the skill will not produce without an explicit request, and it never re-sends a movement that failed.
 
 ## Debug Logging
 
@@ -134,6 +141,8 @@ The LINAK DPG1C desk communicates via four BLE services:
 DPG queries use 3-byte read format `[0x7F, cmd, 0x00]` and require USER_ID session activation before responding. Height values are uint16 in 0.1mm units (little-endian). See `DeskCharacteristics.swift` and `DeskProtocol.swift` for full protocol details.
 
 ## Acknowledgements
+
+Deskon is a fork of [linak-control](https://github.com/MMoMM-org/linak-control) by Marcus Breiden ([MMoMM-org](https://github.com/MMoMM-org)), who wrote the menu bar app, the `deskctl` CLI, and the DPG1C Swift implementation this repository builds on. The copyright notice in [LICENSE](LICENSE) is his.
 
 The BLE protocol implementation is based on reverse-engineering work from these open-source projects:
 

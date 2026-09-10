@@ -70,13 +70,13 @@ The popover has hold-to-move up/down buttons. Releasing the button stops the des
 The CLI mirrors both modes:
 
 ```bash
-deskctl up --manual    # nudges up; stops when the desk's safety timeout expires
+deskctl up --manual    # repeats the raw move command; runs until stop
 deskctl up --auto      # starts continuous up movement
 deskctl stop           # stops any movement immediately
 deskctl down --auto    # same in the other direction
 ```
 
-`--auto` and `--manual` are mutually exclusive; passing neither uses the configured default for that direction.
+`--auto` and `--manual` are mutually exclusive; passing neither is the same as `--manual`. Neither mode is a nudge: both run until `deskctl stop`, until the height stops changing for 2 seconds, or until the desk reaches an end stop.
 
 To go straight to a height instead of nudging:
 

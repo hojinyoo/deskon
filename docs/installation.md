@@ -13,7 +13,7 @@ Before installing, make sure you have the following.
 
 **Operating system**
 
-- macOS 14 (Sonoma) or later.
+- macOS 13 (Ventura) or later.
 
 **Build tools** (`install.sh` checks for these and refuses to run if either is missing)
 
