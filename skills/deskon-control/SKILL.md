@@ -11,7 +11,7 @@ This moves real furniture. Someone's monitor, laptop and coffee ride on it.
 
 ## Authorization
 
-A direct request authorizes exactly the movement it names. "Lower the desk to preset one" is `deskctl preset 1`, run once, no confirmation step and no follow-up questions. Do not turn a clear request into a questionnaire.
+A direct request authorizes exactly the movement it names. "Lower the desk to preset one" is the readiness gate below and then `deskctl preset 1`, run once, no confirmation step and no follow-up questions. Do not turn a clear request into a questionnaire.
 
 Never run any of these unless the user asked for that specific effect:
 
@@ -48,13 +48,17 @@ Never run any of these unless the user asked for that specific effect:
 
 **`up` / `down` keep going.** They are not a nudge: the desk moves until `deskctl stop`, until its height stops changing for 2 seconds, or until it hits an end stop. Pair every `up` or `down` with a plan to stop it. `--auto` drives at the travel limit and ends on arrival; `--manual`, which is also what you get with no flag, repeats the raw move command. The two flags are mutually exclusive. For a known destination prefer `preset` or `goto`, which stop themselves.
 
-## Readiness
+## Readiness gate
 
-Check before moving only when a check changes what you do: the last thing you saw was a disconnect or a fault, or the user asked whether the desk is ready. Otherwise just run the command - it fails loudly with a specific exit code and sends nothing to the desk.
+Run `deskctl status --json` immediately before every `preset`, `goto`, `toggle`, `up`, or `down`. Read it fresh each time; an earlier status in the same conversation does not count. `toggle` reads status of its own, but only for the preset heights, so it needs the gate like the rest.
 
-`deskctl service status` prints one of `Daemon: running (connected)`, `Daemon: running (disconnected)`, or `Daemon: not running`.
+This is a check you run, not a question you ask. When `needs_reference` is absent or `false`, go straight on to the movement in the same turn - no confirmation, no report on the check itself.
 
-`needs_reference: true` in `deskctl status --json` means the desk stalled or reported a fault, and the app stood down so someone can use the control box. Movement will not take effect until the desk is re-referenced by hand, which only a person standing at the desk can do. Plain `deskctl status` prints a `Warning:` line that already decodes `fault_code` into what the desk needs, so relay that line rather than the raw number, and do not send movement.
+When `needs_reference` is `true`, send nothing that moves or reconnects the desk. It stalled or reported a fault and the app stood down so a person can work the control box. Relay the decoded `Warning:` line that plain `deskctl status` prints, and say that the re-referencing has to be done by hand at the desk. Recovery runs through that person; a fresh `deskctl status --json` afterwards is what tells you the flag cleared.
+
+Nothing downstream will stop you, which is why the gate is here. Every movement path calls `ensureConnectedForAction`, so a paired desk that is merely disconnected gets reconnected, and then `needs_reference` and `fault_code` are cleared optimistically before the first write. A movement command sent during a stand-down re-engages BLE and commands motion inside the window the stand-down exists to keep clear, and it erases the evidence of the fault on the way.
+
+`deskctl service status` answers a narrower question - whether the app is up at all - and prints `Daemon: running (connected)`, `Daemon: running (disconnected)`, or `Daemon: not running`. It reports no fault state, so it is not a substitute for the gate.
 
 ## Exit codes and output
 
@@ -63,7 +67,7 @@ Check before moving only when a check changes what you do: the last thing you sa
 | 0 | done |
 | 1 | connection failed, bad response, target out of range, or preset unset - the stderr message is specific, pass it on |
 | 2 | Deskon.app is not running; ask the user to start it |
-| 3 | app running, desk not connected (powered off, out of range) |
+| 3 | no desk to talk to - not paired at all, since a movement command reconnects a paired desk that is merely disconnected |
 | 5 | the desk did not answer in time |
 | 64 | bad arguments, e.g. `deskctl preset 5`; nothing was sent |
 
