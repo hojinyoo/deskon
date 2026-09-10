@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deskon Control"
+  short_description: "Move and query a LINAK standing desk"
+  default_prompt: "Use $deskon-control to show the desk status and current height."
