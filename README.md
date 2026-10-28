@@ -88,6 +88,18 @@ make clean              # Remove build artifacts
 
 The `.app` bundle is built via Xcode (xcodegen generates the project from `project.yml`). A proper bundle is required for CoreBluetooth entitlements, `Info.plist` embedding, and `SMAppService` login item support.
 
+## Release
+
+A pushed `vX.Y.Z` tag runs `.github/workflows/release.yml`. It builds `Deskon.app`, signs it with the Developer ID, notarizes and staples it, then attaches `deskon-vX.Y.Z.zip` and `deskon.sha256` to the tag's release. The workflow header lists the repository secrets it needs, and `workflow_dispatch` runs the same path without a release.
+
+Bump `CFBundleShortVersionString` in `project.yml` before you tag: the app reports that version, not the tag. The zip holds only the app, so `deskctl` still comes from `./install.sh` or `make install`.
+
+The same script runs locally and leaves the stapled app in `build/Deskon.app`:
+
+```bash
+CODESIGN_IDENTITY="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE=deskon scripts/release.sh
+```
+
 ## Architecture
 
 ```

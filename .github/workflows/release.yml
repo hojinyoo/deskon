@@ -1,0 +1,84 @@
+name: Release
+
+# A pushed vX.Y.Z tag builds Deskon.app with scripts/release.sh, signs it with the Developer ID held
+# in the repository secrets, notarizes it and attaches the zip and its checksum to that tag's
+# release, which is created if it does not exist yet. workflow_dispatch does the same without a
+# release, so the signing path can be checked first.
+#
+# Secrets: DEVELOPER_ID_P12_BASE64 (the "Developer ID Application" identity exported as .p12,
+# base64), DEVELOPER_ID_P12_PASSWORD, APPLE_ID, APP_SPECIFIC_PASSWORD (an app password of that
+# Apple ID, for notarytool). The team id comes from the identity name.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: sign, notarize, release (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Import the Developer ID into a throwaway keychain
+        env:
+          P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [ -n "$P12_BASE64" ] || { echo "DEVELOPER_ID_P12_BASE64 is not set" >&2; exit 1; }
+          kc="$RUNNER_TEMP/release.keychain-db"
+          pw=$(uuidgen)
+          security create-keychain -p "$pw" "$kc"
+          security set-keychain-settings -lut 1800 "$kc"
+          security unlock-keychain -p "$pw" "$kc"
+          printf '%s' "$P12_BASE64" | base64 --decode >"$RUNNER_TEMP/id.p12"
+          security import "$RUNNER_TEMP/id.p12" -k "$kc" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/id.p12"
+          # Lets codesign use the key without a UI prompt; the runner has no one to click Allow.
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$pw" "$kc" >/dev/null
+          security list-keychains -d user -s "$kc" login.keychain-db
+          identity=$(security find-identity -v -p codesigning "$kc" \
+            | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)
+          [ -n "$identity" ] || { echo "no Developer ID Application identity in the p12" >&2; exit 1; }
+          echo "CODESIGN_IDENTITY=$identity" >>"$GITHUB_ENV"
+
+      - run: brew install xcodegen
+
+      - name: Build, sign, notarize
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+        run: scripts/release.sh
+
+      - name: Zip
+        run: |
+          set -euo pipefail
+          # A branch name may hold a slash, which neither a file nor an artifact name accepts.
+          dist="deskon-${GITHUB_REF_NAME//\//-}"
+          ditto -c -k --keepParent build/Deskon.app "$dist.zip"
+          shasum -a 256 "$dist.zip" | tee deskon.sha256
+          echo "DIST=$dist" >>"$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DIST }}
+          path: |
+            ${{ env.DIST }}.zip
+            deskon.sha256
+
+      - name: Attach to the release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          src="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME"
+          notes="Deskon is a fork of [linak-control](https://github.com/MMoMM-org/linak-control) by Marcus Breiden (MIT). License and third-party notices: [LICENSE]($src/LICENSE), [THIRD_PARTY_LICENSES.md]($src/THIRD_PARTY_LICENSES.md)."
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --generate-notes --notes "$notes"
+          gh release upload "$GITHUB_REF_NAME" "$DIST.zip" deskon.sha256 --clobber
