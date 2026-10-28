@@ -1,5 +1,5 @@
 # Tools -- linak-control
-<!-- CI, build pipeline, API clients, local dev setup. Updated: 2026-04-02 -->
+<!-- CI, build pipeline, API clients, local dev setup. Updated: 2026-10-28 -->
 
 ## Build Commands
 
@@ -11,6 +11,12 @@
 | `make test` | Run 385 tests via SPM |
 | `./run.sh` | Kill running instance, build debug, launch app |
 | `./run.sh --clean` | Same but wipes config (first-run pairing mode) |
+
+## Release
+
+- `.github/workflows/release.yml` runs `scripts/release.sh` on `v*` tags: Developer ID sign (hardened runtime), notarize, staple `build/Deskon.app`.
+- `xcodebuild build` injects `com.apple.security.get-task-allow` even in Release. Notarization rejects it, so the script re-signs without `--preserve-metadata=entitlements`.
+- `gh` resolves this checkout to the `upstream` remote (MMoMM-org/linak-control). Pass `-R hojinyoo/deskon` for PRs, releases and secrets.
 
 ## Debug Logging
 
