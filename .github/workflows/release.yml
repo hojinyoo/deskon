@@ -23,6 +23,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # release.sh versions the app with git describe --tags
 
       - name: Import the Developer ID into a throwaway keychain
         env:

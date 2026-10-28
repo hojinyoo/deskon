@@ -29,6 +29,10 @@ mkdir -p build
 cp -R "$(make -s app-path XCODE_CONFIG=Release)" "$APP"
 # MIT asks for the notice in every copy, and the release zip carries only the app.
 cp LICENSE THIRD_PARTY_LICENSES.md "$APP/Contents/Resources/"
+# A tagged commit ships as that version; any other build keeps the one in project.yml.
+if tag=$(git describe --tags --exact-match 2>/dev/null); then
+  plutil -replace CFBundleShortVersionString -string "${tag#v}" "$APP/Contents/Info.plist"
+fi
 # Re-signing drops the get-task-allow entitlement Xcode injects into every non-archive build, which
 # notarization rejects. The app has no entitlements of its own: hardened runtime gates neither
 # CoreBluetooth nor SMAppService. An entitlements file added later must be passed with --entitlements.
